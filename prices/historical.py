@@ -1,0 +1,1 @@
+""" Historical day data from cryptocompy """
