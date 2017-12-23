@@ -19,9 +19,9 @@ Additional module info in each module's README.
 - the prices module deals with price fetching functions  
 
 ### Dependencies ###
-pip install:
-ccxt
-cryptocompy
-pandas
-numpy
-forex python
+pip install:  
+ccxt  
+cryptocompy  
+pandas  
+numpy  
+forex_python  
