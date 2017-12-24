@@ -30,7 +30,7 @@ def get_single_price(base, quote, exchange, ret_float=False):
 
 
 def compare_single_pair_prices(base, quote, exchanges):
-    """Returns DF of exchange prices for simgle pair."""
+    """Returns DF of exchange prices for single pair."""
     assert (isinstance(base, str) and isinstance(quote, str)), 'Single pair only'
     code = base + '-' + quote
     df = pd.DataFrame(columns=[code, 'price'])
@@ -66,6 +66,21 @@ def compare_two_exchanges(base, quote, e1, e2):
             }
             df = df.append(row, ignore_index=True)
     return df
+
+
+def find_matching_pairs(e1, e2):
+    """Returns list of currency pairs listed on both input exchanges. Also checks reverse pairs."""
+    # this is actually pretty difficult with this library!
+
+
+
+def exchange_search(base, quote):
+    """Returns exchanges that have markets for a single price pair. Also checks reverse pairs."""
+    coin_data = coin.get_coin_snapshot(base, quote)
+    exchanges1 = set([e['MARKET'] for e in coin_data['Exchanges']])
+    coin_data = coin.get_coin_snapshot(quote, base)
+    exchanges2 = set([e['MARKET'] for e in coin_data['Exchanges']])
+    return list(exchanges1 | exchanges2)
 
 
 if __name__ == '__main__':
