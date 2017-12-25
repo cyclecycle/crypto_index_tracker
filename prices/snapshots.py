@@ -1,6 +1,5 @@
 from cryptocompy import coin, price
 import numpy as np
-from tabulate import tabulate
 import matplotlib.pyplot as plt
 import datetime
 import time
@@ -24,7 +23,8 @@ def get_single_price(base, quote, exchange, ret_float=False):
     p = price.get_current_price(base, quote, e=exchange)
     if 'Type' in p:
         p = price.get_current_price(quote, base, e=exchange)
-        assert 'Type' not in p, p['Message']
+        if 'Type' in p:
+            raise PairNotListedError('{}-{} pair (or reverse) not listed on {}'.format(base, quote, exchange))
         p = {base: {quote: 1/p[quote][base]}}
     return p if not ret_float else p[base][quote]
 
@@ -51,9 +51,9 @@ def compare_two_exchanges(base, quote, e1, e2):
         ex2 = get_single_price(base, quote, e2)
     else:
         ex1 = price.get_current_price(base, quote, e=e1)
-        assert 'Type' not in ex1, ex1['Message']
         ex2 = price.get_current_price(base, quote, e=e2)
-        assert 'Type' not in ex2, ex2['Message']
+        if 'Type' in ex1 or 'Type' in ex2:
+            raise PairNotListedError('One or more pairs not listed in both exchanges')
 
     df = pd.DataFrame(columns=['Pair', e1, e2, '% diff'])
     for b in ex1:
@@ -73,7 +73,6 @@ def find_matching_pairs(e1, e2):
     # this is actually pretty difficult with this library!
 
 
-
 def exchange_search(base, quote):
     """Returns exchanges that have markets for a single price pair. Also checks reverse pairs."""
     coin_data = coin.get_coin_snapshot(base, quote)
@@ -82,6 +81,9 @@ def exchange_search(base, quote):
     exchanges2 = set([e['MARKET'] for e in coin_data['Exchanges']])
     return list(exchanges1 | exchanges2)
 
+
+class PairNotListedError(Exception):
+    pass
 
 if __name__ == '__main__':
     print(compare_two_exchanges(['ETH', 'LTC'], 'BTC', 'Kraken', 'Binance'))
