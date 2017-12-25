@@ -93,7 +93,7 @@ class Bot(CoreBot):
 
 	def smoothed_moving_average_gradient(self, window_size=2):
 		try:
-			val = np.gradient(self.memory['sma'][-60:])[-1]
+			val = np.gradient(self.memory['sma'][-window_size:])[-1]
 		except:
 			val = np.nan
 		print(val)
