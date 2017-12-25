@@ -9,7 +9,7 @@ FIAT = ['GBP', 'USD', 'EUR']
 
 def get_total_balance(clients, gbp_only=False):
     """
-    Anlyses balance of funds across one or more exchanges/.
+    Analyses balance of funds across one or more exchanges.
     :param clients: Dict of ccxt authenticated clients with exchange names as keys
     :param gbp_only: optionally return GBP values only
     :return: DataFrame of balance
