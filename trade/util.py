@@ -1,4 +1,3 @@
-from private import CLIENTS  # Dict of ccxt clients instantiated with private API keys
 import ccxt
 from forex_python.converter import CurrencyRates
 import pandas as pd
@@ -7,9 +6,9 @@ from cryptocompy import price
 FIAT = ['GBP', 'USD', 'EUR']
 
 
-def get_total_balance(clients, gbp_only=False):
+def get_total_balance(clients, gbp_only=False, wallets=None):
     """
-    Analyses balance of funds across one or more exchanges.
+    Analyses balance of funds across one or more exchanges/.
     :param clients: Dict of ccxt authenticated clients with exchange names as keys
     :param gbp_only: optionally return GBP values only
     :return: DataFrame of balance
@@ -21,10 +20,20 @@ def get_total_balance(clients, gbp_only=False):
     totals = {}
     coins = set()
     for ex in clients:
-        totals[ex] = clients[ex].fetch_balance()['total']
+        totals_raw = clients[ex].fetch_balance()['total']
+        totals[ex] = {}
+        for curr in totals_raw:
+            if totals_raw[curr] > 0.:
+                totals[ex][curr] = totals_raw[curr]
         for curr in totals[ex]:
             if curr not in FIAT:
                 coins.add(curr)
+    # add wallets
+    totals['Wallets'] = {}
+    for curr in wallets:
+        totals['Wallets'][curr] = wallets[curr]
+        coins.add(curr)
+
     df_cols += list(coins) + ['EUR', 'GBP', 'Total (GBP)']
     df = pd.DataFrame(columns=df_cols)
     avg_prices = price.get_current_price(list(coins), 'EUR')
@@ -97,4 +106,4 @@ def get_total_balance(clients, gbp_only=False):
 
 
 if __name__ == '__main__':
-    print(get_total_balance(CLIENTS, gbp_only=False))
+    pass

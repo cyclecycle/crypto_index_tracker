@@ -33,3 +33,4 @@ def historical_compare(bases, quote, e1, e2, no_days=7):
                     pairs[pair].append(perc_diff)
                     pairs[pair + ' ' + e1].append(e1_price)
                     pairs[pair + ' ' + e2].append(e2_price)
+    return pairs
