@@ -6,14 +6,19 @@ from cryptocompy import price
 FIAT = ['GBP', 'USD', 'EUR']
 
 
-def get_total_balance(clients, gbp_only=False, wallets=None):
+def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None):
     """
-    Analyses balance of funds across one or more exchanges/.
+    Analyses balance of funds across one or more exchanges.
     :param clients: Dict of ccxt authenticated clients with exchange names as keys
+    :param wallets: optional dict of coins held in private wallets (e.g. {'BTC': 1.1, 'LTC': 0.02})
     :param gbp_only: optionally return GBP values only
+    :param funds_invested: optionally input GBP invested for profit calculation
     :return: DataFrame of balance
     """
     eur2gbp = CurrencyRates().get_rate('EUR', 'GBP')
+    pd.set_option('expand_frame_repr', False)
+    pd.options.display.float_format = '{:.2f}'.format
+
 
     # build df columns from currencies
     df_cols = ['Exchange']
@@ -37,7 +42,6 @@ def get_total_balance(clients, gbp_only=False, wallets=None):
     df_cols += list(coins) + ['EUR', 'GBP', 'Total (GBP)']
     df = pd.DataFrame(columns=df_cols)
     avg_prices = price.get_current_price(list(coins), 'EUR')
-    print(df_cols)
 
     # build row values for each exchange
     for ex in totals:
@@ -70,12 +74,10 @@ def get_total_balance(clients, gbp_only=False, wallets=None):
             row_totals[col] = sum(df[col].values)
             if col == 'EUR':
                 row_gbp_totals[col] = row_totals[col] * eur2gbp
-                print(eur2gbp)
             elif col == 'GBP' or col == 'Total (GBP)':
                 row_gbp_totals[col] = row_totals[col]
             else:
                 row_gbp_totals[col] = row_totals[col] * avg_prices[col]['EUR'] * eur2gbp
-    print(row_gbp_totals)
     df = df.append(row_totals, ignore_index=True)
     df = df.append(row_gbp_totals, ignore_index=True)
 
@@ -91,13 +93,27 @@ def get_total_balance(clients, gbp_only=False, wallets=None):
     perc_row = {}
     for col in df_cols:
         if col == 'Exchange':
-            perc_row[col] = 'Total %'
+            perc_row[col] = '%'
         else:
             perc_row[col] = 100 * df[col].values[-1] / df['Total (GBP)'].values[-1]
     perc_row['%'] = 100
     df = df.append(perc_row, ignore_index=True)
 
-    df = df.loc[:, (df != 0).any(axis=0)]  # delete columns where everything is 0
+    # formatting and sorting
+    df = df.loc[:, (df > 1).any(axis=0)]  # delete columns with less than £1 in
+    df = df[:-3].sort_values(by='%', ascending=False).reset_index(drop=True).append(df[-3:], ignore_index=True)
+    df = pd.concat(
+        [df.iloc[:, 0], df.iloc[:, 1:-3].sort_values(by=len(df) - 1, ascending=False, axis=1), df.iloc[:, -3:]], axis=1)
+
+    print(df)
+
+    # profit calc
+    if funds_invested is not None:
+        current_value = df['Total (GBP)'].values[-2]
+        profit = current_value - funds_invested
+        profitperc = 100 * profit/funds_invested
+        print('\nInvested: £{:.2f}, Current Value: £{:.2f}, Profit: £{:.2f}, {:+.2f}%'.format(
+                funds_invested, current_value, profit, profitperc))
 
     if gbp_only:
         return df[['Exchange', 'Total (GBP)']][:-2]
