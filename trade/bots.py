@@ -1,74 +1,157 @@
-from private import CLIENTS  # Dict of ccxt clients instantiated with private API keys
-import ccxt
 import numpy as np
-import matplotlib.pyplot as plt
+import operator
+import warnings
+# warnings.simplefilter('ignore')
+from pyti.smoothed_moving_average import smoothed_moving_average as sma
 
 
-class SMALimBot:
+class CoreBot:
 
-    def __init__(self, funds=100, frac=0.01, mov_avg_len=60):
-        self.funds = funds
-        self.size = 0
-        self.val = funds
-        self.lim = None
-        self.lim_frac = frac
-        self.fee_coeff = 1 - 0.003
-        self.mov_avg = []
-        self.mov_avg_len = mov_avg_len
+	def __init__(self, funds, rule_set, memory_size=1024, verbose=False):
 
-        self.trades = []
+		self.funds = funds
+		self.rule_set = rule_set
+		self.positions = []  # Trade positions held
+		self.verbose = verbose
+		self.memory = {observable: [] for observable in self.observable_funcs.keys()}
+		self.memory['price'] = []
+		self.memory_size = memory_size
 
-        self.set_lim(99, 'buy')
+	def step(self, price):
+		self.memorize('price', price)
+		self.refresh_observables()
+		action = self.decide_action()
+		func = self.action_funcs[action]
+		result = func()
+		# print(self.memory)
+		self.log('action: ' + action, details=result)
 
-    def step(self, P):
-        self.P = P
-        self.set_movavg()
-        self.update_lim()
-        self.update_val()
+	def memorize(self, key, val):
+		self.memory[key].append(val)
+		if len(self.memory[key]) == self.memory_size:
+			self.memory[key].pop(0)
 
-    def update_lim(self):
-        p = self.P[-1]
-        if self.lim is not None:
-            if self.lim[1] == 'buy':
-                if self.lim[0] > p:
-                    self.size += (self.funds / p) * self.fee_coeff
-                    self.trades.append(('buy', self.funds, self.size, p, len(self.P) - self.mov_avg_len))
-                    self.funds = 0
-                    self.set_lim((1 + self.lim_frac) * self.mov_avg[-1], 'sell')
-            elif self.lim[1] == 'sell':
-                if self.lim[0] < p:
-                    self.funds += p * self.size * self.fee_coeff
-                    self.trades.append(('sell', self.funds, self.size, p, len(self.P) - self.mov_avg_len))
-                    self.size = 0
-                    self.set_lim((1 - self.lim_frac) * self.mov_avg[-1], 'buy')
+	def refresh_observables(self):
+		for observable, func in self.observable_funcs.items():
+			val = func()
+			self.memorize(observable, val)
 
-    def update_val(self):
-        self.val = self.funds + self.P[-1] * self.size
+	def decide_action(self):
+		# Check current observables against rule set and return action
+		ops = {
+			'>': operator.gt,
+			'<': operator.lt,
+			'>=': operator.ge,
+			'<=': operator.le,
+			'=': operator.eq
+		}
+		for item in self.rule_set:
+			conditions_met = 0
+			for condition in item['conditions']:
+				observable = condition['observable']
+				op, val = condition['value']
+				op_func = ops[op]
+				if op_func(self.memory[observable][-1], val):
+					conditions_met += 1
+			if conditions_met == len(item['conditions']):
+				return item['action']
+		return 'wait'  # Default
 
-    def set_movavg(self):
-        assert len(self.P) > self.mov_avg_len
-        self.mov_avg.append(np.mean(self.P[-self.mov_avg_len:]))
+	def log(self, message, details=None):
+		if self.verbose:
+			print(message)
+		pass
 
-    def set_lim(self, lim, type):
-        self.lim = (lim, type)
 
-    def plot(self):
-        plt.plot(self.P[self.mov_avg_len:])
-        plt.plot(self.mov_avg)
+class Bot(CoreBot):
+	def __init__(self, *args, **kwargs):
 
-        if self.trades:
-            xb, yb, xs, ys = [], [], [], []
-            for t in self.trades:
-                if t[0] == 'buy':
-                    xb.append(t[4])
-                    yb.append(t[3])
-                elif t[0] == 'sell':
-                    xs.append(t[4])
-                    ys.append(t[3])
-        plt.scatter(xb, yb, c='g', marker='x')
-        plt.scatter(xs, ys, c='r', marker='x')
-        plt.show()
+		self.observable_funcs = {
+			'n_positions': self.n_positions,
+			'sma': self.smoothed_moving_average,
+			'sma_gradient': self.smoothed_moving_average_gradient
+		}
+		self.action_funcs = {
+			'wait': self.wait,
+			'buy': self.buy,
+			'sell': self.sell,
+		}
+		super().__init__(*args, **kwargs)
+
+	''' Observable functions '''
+
+	def n_positions(self):
+		return len(self.positions)
+
+	def smoothed_moving_average(self, window_size=2):
+		try:
+			data = self.memory['price'][-window_size:]
+			val = sma(np.array(data), window_size)[-1]
+		except:  # Window size exceeds current memory
+			val = np.nan
+		return val
+
+	def smoothed_moving_average_gradient(self, window_size=2):
+		try:
+			val = np.gradient(self.memory['sma'][-window_size:])[-1]
+		except:
+			val = np.nan
+		print(val)
+		return val
+
+	''' Action functions '''
+
+	def buy(self):
+		self.positions.append('yello')
+		pass
+
+	def sell(self):
+		self.positions.pop(0)
+		pass
+
+	def wait(self):
+		pass
+
 
 
 if __name__ == '__main__':
-    pass
+
+	rule_set = [  # The first element to have its conditions met has its action taken (i.e, order by precedence)
+		{
+			'action': 'wait',  # Action names correspond to bot.action_funcs
+			'conditions': [  # If multiple conditions, all must be met
+				{
+					'observable': 'n_positions',  # Observables correspond to values calculated each step by bot.observable_funcs
+					'value': ('=', 1)
+				}
+			]
+		},
+		{
+			'action': 'buy',
+			'conditions': [
+				{
+					'observable': 'sma_gradient',
+					'value': ('>', 0.25)
+				}
+			]
+		},
+		{
+			'action': 'sell',
+			'conditions': [
+				{
+					'observable': 'n_positions',
+					'value': ('>', 1)
+				},
+				{
+					'observable': 'sma_gradient',
+					'value': ('<', -0.25)
+				}
+			]
+		}
+	]
+
+
+	bot = Bot(100, rule_set, verbose=True)
+	data = [5,8,3,6,5,7,4,6,5,10,15,15,15,15,15,3,2,1,0]
+	for d in data:
+		bot.step(d)
