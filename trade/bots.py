@@ -7,7 +7,6 @@ from pyti.smoothed_moving_average import smoothed_moving_average as sma
 
 class CoreBot:
 
-<<<<<<< HEAD
     '''
         Responsible for step logic, short-term memory, and determining actions based on the rule set.
         Classes extending this must define:
@@ -15,8 +14,6 @@ class CoreBot:
             self.action_funcs - dict of methods, defined within the class, that carry out thy bidding
     '''
 
-=======
->>>>>>> 2f51f9afda0a2955bde3c9f1c792b02ae9cd4c7e
     def __init__(self, funds, rule_set, memory_size=1024, verbose=False):
 
         self.funds = funds
@@ -97,29 +94,16 @@ class Bot(CoreBot):
         try:
             data = self.memory['price'][-window_size:]
             val = sma(np.array(data), window_size)[-1]
-<<<<<<< HEAD
             return val
         except:  # Window size exceeds current memory
             return np.nan
-=======
-        except:  # Window size exceeds current memory
-            val = np.nan
-        return val
->>>>>>> 2f51f9afda0a2955bde3c9f1c792b02ae9cd4c7e
 
     def smoothed_moving_average_gradient(self, window_size=2):
         try:
             val = np.gradient(self.memory['sma'][-window_size:])[-1]
-<<<<<<< HEAD
             return val
         except:
             return np.nan
-=======
-        except:
-            val = np.nan
-        print(val)
-        return val
->>>>>>> 2f51f9afda0a2955bde3c9f1c792b02ae9cd4c7e
 
     ''' Action functions '''
 
@@ -133,30 +117,16 @@ class Bot(CoreBot):
 
     def wait(self):
         pass
-<<<<<<< HEAD
-
-=======
->>>>>>> 2f51f9afda0a2955bde3c9f1c792b02ae9cd4c7e
 
 
 if __name__ == '__main__':
 
-<<<<<<< HEAD
     rule_set = [  # The first element in the rule set to have its conditions met has its action taken (i.e, order by precedence)
         {
             'action': 'wait',  # Action names correspond to bot.action_funcs
             'conditions': [  # If multiple conditions in list, all must be met
                 {  # Each condition consists of an observable and a value check
                     'observable': 'n_positions',  # Observables correspond to values calculated at each step by bot.observable_funcs
-=======
-    rule_set = [  # The first element to have its conditions met has its action taken (i.e, order by precedence)
-        {
-            'action': 'wait',  # Action names correspond to bot.action_funcs
-            'conditions': [  # If multiple conditions, all must be met
-                {
-                    'observable': 'n_positions',
-                # Observables correspond to values calculated each step by bot.observable_funcs
->>>>>>> 2f51f9afda0a2955bde3c9f1c792b02ae9cd4c7e
                     'value': ('=', 1)
                 }
             ]
@@ -175,11 +145,7 @@ if __name__ == '__main__':
             'conditions': [
                 {
                     'observable': 'n_positions',
-<<<<<<< HEAD
                     'value': ('>=', 1)  # Must have one or more positions in order to sell
-=======
-                    'value': ('>', 1)
->>>>>>> 2f51f9afda0a2955bde3c9f1c792b02ae9cd4c7e
                 },
                 {
                     'observable': 'sma_gradient',
@@ -189,15 +155,7 @@ if __name__ == '__main__':
         }
     ]
 
-<<<<<<< HEAD
-
-    bot = Bot(100, rule_set, verbose=True)
-    price_list = [5,8,3,6,5,7,4,6,5,10,15,15,15,15,15,3,2,1,0]
-    for p in price_list:
-        bot.step(p)
-=======
     bot = Bot(100, rule_set, verbose=True)
     data = [5, 8, 3, 6, 5, 7, 4, 6, 5, 10, 15, 15, 15, 15, 15, 3, 2, 1, 0]
     for d in data:
         bot.step(d)
->>>>>>> 2f51f9afda0a2955bde3c9f1c792b02ae9cd4c7e
