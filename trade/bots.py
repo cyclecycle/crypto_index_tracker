@@ -39,6 +39,7 @@ class CoreBot:
         result = func()  # Action methods return details about the action
         result.update({'action': action, 'timestamp': datetime.now()})
         self.memorize('action', result)
+        self.memorize('funds', self.funds)
         self.log('action: ' + action, details=result)
 
     def memorize(self, key, val):
@@ -72,6 +73,9 @@ class CoreBot:
                 if op_func(self.memory[observable][-1], val):
                     conditions_met += 1
             if conditions_met == len(item['conditions']):
+                # if item['action'] == 'sell':
+                #     print(item['conditions'])
+                #     self.current_state()
                 return item['action']
         return 'wait'  # Default
 
@@ -113,6 +117,12 @@ class CoreBot:
             # for key, val in details.items():
                 # print(key, ': ', val)
 
+    def current_state(self):
+        ''' Shows the latest value for everything in memory for debugging / logging purposes '''
+        state = {k: vals[-1] for k, vals in self.memory.items()}
+        if self.verbose:
+            for k, v in state.items():
+                print('\n', k + ':', v, end='\r')
 
 
 class Bot(CoreBot):
@@ -154,10 +164,19 @@ class Bot(CoreBot):
             pass
         return np.nan
 
+    def upcross(self, a, b):
+        ''' Signal if a surpasses b '''
+        pass
+
+    def downcross(self, a, b):
+        ''' Signal if a falls below b '''
+        pass
+
+
     ''' Actions '''
 
     def buy(self):
-        with_funds = self.funds * 0.1  # Trade a 10th of what we have
+        with_funds = self.funds
         result = self.trade(type='buy', with_funds=with_funds)  # Other params like stoploss etc.
         return result
 

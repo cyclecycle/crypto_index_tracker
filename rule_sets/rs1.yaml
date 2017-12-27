@@ -1,10 +1,10 @@
 - action: buy
   conditions:
   - observable: sma10_gradient
-    value: ['>=', 2]
+    value: ['>=', 4]
   - observable: sma45_gradient
-    value: ['>=', 2]
-  - observable: n_positions
+    value: ['>=', 4]
+  - observable: n_positions]
     value: ['<', 1]
 
 - action: sell
@@ -12,6 +12,6 @@
   - observable: n_positions
     value: ['>=', 1]
   - observable: sma10_gradient
-    value: [<, -2]
+    value: [<, -4]
   - observable: sma45_gradient
-    value: [<, -2]
+    value: [<, -4]
