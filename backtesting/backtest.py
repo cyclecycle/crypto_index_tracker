@@ -122,5 +122,5 @@ if __name__ == '__main__':
         results_list.append(results)
         print(results)
 
-    pd.DataFrame(results_list).sort_values(['end funds']).to_csv('results.csv', index=False)
+    pd.DataFrame(results_list).sort_values(['end funds']).to_csv(os.path.join(cwd, 'results.csv'), index=False)
 
