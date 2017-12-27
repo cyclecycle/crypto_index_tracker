@@ -45,7 +45,9 @@ def compare_single_pair_prices(base, quote, exchanges):
 
 
 def compare_two_exchanges(base, quote, e1, e2):
-    """Compares one or more pair prices for 2 exchanges."""
+    """
+    Compares one or more pair prices for 2 exchanges.
+    """
     if isinstance(base, str) and isinstance(quote, str):
         ex1 = get_single_price(base, quote, e1)
         ex2 = get_single_price(base, quote, e2)
@@ -66,6 +68,28 @@ def compare_two_exchanges(base, quote, e1, e2):
             }
             df = df.append(row, ignore_index=True)
     return df
+
+
+def compare_two_exchanges_ccxt(base, quote, client1, client2):
+    """
+    Compares one or more pair prices for 2 exchanges.
+    Single pair only.
+    """
+    e1_tick = client1.fetch_ticker(base + '/' + quote)
+    e2_tick = client2.fetch_ticker(base + '/' + quote)
+    df = pd.DataFrame(columns=['Exchange', 'Bid', 'Ask'])
+    price_dict = {
+        client1.describe()['name']: {
+            'bid': e1_tick['bid'],
+            'ask': e1_tick['ask']},
+        client2.describe()['name']: {
+            'bid': e2_tick['bid'],
+            'ask': e2_tick['ask']}}
+
+    # if min % diff > 0, buy on exchange 2, sell on exchange 1
+    min_pd = 100 * (e1_tick['bid']/e2_tick['ask'] - 1)
+
+    return price_dict, min_pd
 
 
 def find_matching_pairs(e1, e2):

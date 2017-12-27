@@ -13,6 +13,9 @@ When not busy, works OK. Looks like it can give a timeout error but still execut
 ### Binance ###
 Reliable. Site is chinese so try not to store too much on it.
 
+### Kucoin ###
+Untested but looks deec. Hong kong exchange.
+
 ### BitTrex ###
 [Currently not able to make new accounts]
 
