@@ -41,7 +41,10 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
 
     df_cols += list(coins) + ['EUR', 'GBP', 'Total (GBP)']
     df = pd.DataFrame(columns=df_cols)
-    avg_prices = price.get_current_price(list(coins), 'EUR')
+    avg_prices = price.get_current_price([c for c in coins if c != 'BTC'], 'BTC')
+    btc2gbp = price.get_current_price('BTC', 'GBP')['BTC']['GBP']
+    print(avg_prices)
+    print(btc2gbp)
 
     # build row values for each exchange
     for ex in totals:
@@ -56,8 +59,10 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
                     total_gbp += row[col] * eur2gbp
                 elif col == 'GBP':
                     total_gbp += row[col]
+                elif col == 'BTC':
+                    total_gbp += row[col] * btc2gbp
                 else:
-                    total_gbp += row[col] * avg_prices[col]['EUR'] * eur2gbp
+                    total_gbp += row[col] * avg_prices[col]['BTC'] * btc2gbp
             else:
                 row[col] = 0.
         row['Total (GBP)'] = total_gbp
@@ -76,8 +81,10 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
                 row_gbp_totals[col] = row_totals[col] * eur2gbp
             elif col == 'GBP' or col == 'Total (GBP)':
                 row_gbp_totals[col] = row_totals[col]
+            elif col == 'BTC':
+                row_gbp_totals[col] = row_totals[col] * btc2gbp
             else:
-                row_gbp_totals[col] = row_totals[col] * avg_prices[col]['EUR'] * eur2gbp
+                row_gbp_totals[col] = row_totals[col] * avg_prices[col]['BTC'] * btc2gbp
     df = df.append(row_totals, ignore_index=True)
     df = df.append(row_gbp_totals, ignore_index=True)
 
@@ -119,6 +126,29 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
         return df[['Exchange', 'Total (GBP)']][:-2]
     else:
         return df
+
+
+def quick_buy(client, pair, funds, execute=False):
+    """
+    Make a limit buy just above the current bid price. Prints info.
+    :param client: ccxt client
+    :param pair: currency pair (e.g. 'BTC/EUR')
+    :param funds: quote funds
+    :param execute: safety param, set True to execute trade.
+    :return: order info
+    """
+    tick = client.fetch_ticker(pair)
+    bid = tick['bid']
+    ask = tick['ask']
+    mybid = tick['bid'] * 1.01
+    amount = funds / mybid
+    amount = client.amount_to_lots(pair, amount)  # for binance
+
+    if execute:
+        order = client.create_order(pair, 'limit', 'buy', amount, price=mybid)
+        return order
+    else:
+        return {'bid': mybid, 'amount': amount}
 
 
 if __name__ == '__main__':

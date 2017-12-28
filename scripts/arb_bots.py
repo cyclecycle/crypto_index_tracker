@@ -16,7 +16,7 @@ def kraken_binance_ETC_ETH(eth_in_binance):
     while not flag:
         pdict, mpd = compare_two_exchanges_ccxt('ETC', 'ETH', kraken, binance)
         # print(pdict)
-        print('Min % diff: {}',format(mpd))
+        print('Min % diff: {}'.format(mpd))
 
         bid = pdict['Binance']['ask'] * (1 - undercut)
         ask = pdict['Kraken']['bid'] * (1 + undercut)
