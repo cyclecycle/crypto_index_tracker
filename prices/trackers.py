@@ -2,21 +2,23 @@ from prices.snapshots import compare_two_exchanges
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 class Tracker:
     """Short term price tracker"""
-    def __init__(self, num_snaps=60, interval=60, csv_log_path=None):
+    def __init__(self, num_snaps=60, interval=60, log_filename=None):
         """
         Initialise tracker
         :param num_snaps: number of snapshots
         :param interval: interval between data points in seconds
-        :param csv_log_path: path to log csvs (if None will not log csvs)
+        :param log_filename: path to log csvs (if None will not log csvs)
         """
         self.df = None
         self.num_snaps = num_snaps
         self.interval = interval
-        if csv_log_path is not None:
-            self.csv_path = csv_log_path
+        if log_filename is not None:
+            ext = '.csv' if not log_filename.endswith('.csv') else ''
+            self.csv_path = '{}/data/{}{}'.format(os.path.dirname(os.path.abspath(__file__)), log_filename, ext)
 
     def load_csv(self, path):
         self.df = pd.read_csv(path)
@@ -39,8 +41,8 @@ class Tracker:
 
 class CompareTwoExchangesTracker(Tracker):
 
-    def __init__(self, num_snaps=60, interval=60, csv_log_path=None):
-        super().__init__(num_snaps=num_snaps, interval=interval, csv_log_path=csv_log_path)
+    def __init__(self, num_snaps=60, interval=60, log_filename=None):
+        super().__init__(num_snaps=num_snaps, interval=interval, log_filename=log_filename)
 
     def track(self, *args):
         """Input args for compare_two_exchanges() function"""
@@ -62,11 +64,11 @@ class CompareTwoExchangesTracker(Tracker):
             df = df.append(row, ignore_index=True)
             time.sleep(self.interval)
             if self.csv_path is not None:
-                df.to_csv('data/{}.csv'.format(self.csv_path))
+                df.to_csv(self.csv_path)
         self.df = df
 
 
 if __name__ == '__main__':
-    tracker = CompareTwoExchangesTracker(csv_log_path='data/tracker.csv')
+    tracker = CompareTwoExchangesTracker(log_filename='data/tracker.csv')
     tracker.load_csv('data/krakenarb.csv')
     tracker.plot()
