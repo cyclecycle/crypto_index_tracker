@@ -1,0 +1,17 @@
+vars:
+  $n_coins: 20
+  $weighting_dict:
+    market_cap_eur: 1
+
+observables:
+  coin_data_list:
+    func: get_coin_data
+    args: [$n_coins]
+
+actions:
+  rebalance:
+    func: rebalance
+    args: [coin_data_list, $weighting_dict]
+
+rules:
+  default: rebalance
