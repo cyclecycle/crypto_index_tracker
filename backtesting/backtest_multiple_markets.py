@@ -13,10 +13,6 @@ sys.path.append(str(root))
 from trade.bots import Bot
 
 
-''' Load rule set '''
-with open(os.path.join(root, 'rule_sets/rs1.yaml')) as f:
-    rule_set = yaml.load(f)
-
 start_funds = 100
 
 
@@ -29,8 +25,11 @@ def get_datasets():
         cur = con.cursor()
         cur.execute('select distinct(exchange) from exchange_data')
         exchanges = flatten(cur.fetchall())
+        print(exchanges)
         cur.execute('select distinct(pair) from exchange_data')
         pairs = flatten(cur.fetchall())
+        print(pairs)
+        raise
         for exchange in exchanges:
             for pair in pairs:
 
@@ -55,20 +54,22 @@ def get_datasets():
                     pass
 
 
-def backtest(df):
+def backtest(df, plot=False):
 
     ''' Instantiate bot '''
     bot = Bot(
-        start_funds,
-        rule_set,
+        funds=start_funds,
         memory_size=len(df),
         # verbose=True
     )
 
+    bot.load_rule_set('rs2.yaml')
+
 
     ''' Run simulation '''
     for price in df['price']:
-        bot.step(price)
+        data = {'price': price}
+        bot.step(**data)
 
 
     ''' Results '''
@@ -86,29 +87,33 @@ def backtest(df):
         'net': bot.funds - start_funds
     })
 
+    print(results)
+
     # Actions log to csv
     # actions.loc[actions['action'].isin(['buy', 'sell'])].sort_values(['timestamp']).to_csv(os.path.join(cwd, 'action_log.csv'), index=False)
 
+    if not buys.empty and not sells.empty:
+        if plot:
+
+            y = np.array(bot.memory['price'])
+            x = np.arange(len(y))
+            # f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
+            f, (ax1) = plt.subplots(1)
+            ax1.scatter(x, y, s=0.5)
+            ax1.plot(bot.memory['sma_1'], c='r')
+            ax1.plot(bot.memory['sma_2'], c='c')
+            ax1.scatter(buys.index, buys['price'], c='g', marker='x')
+            ax1.scatter(sells.index, sells['price'], c='y', marker='x')
+
+            # ax2.plot(bot.memory['sma10_gradient'], c='r')
+            # ax2.plot(bot.memory['sma45_gradient'], c='c')
+
+            # ax3.plot(bot.memory['funds'])
+
+            plt.show()
+            raise
+
     return results
-
-
-def plot(bot, df):
-    y = np.array(bot.memory['price'])
-    x = np.arange(len(y))
-    # f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
-    f, (ax1) = plt.subplots(1)
-    ax1.scatter(x, y, s=0.5)
-    ax1.plot(bot.memory['sma10'], c='r')
-    ax1.plot(bot.memory['sma45'], c='c')
-    ax1.scatter(buys.index, buys['price'], c='g', marker='x')
-    ax1.scatter(sells.index, sells['price'], c='y', marker='x')
-
-    # ax2.plot(bot.memory['sma10_gradient'], c='r')
-    # ax2.plot(bot.memory['sma45_gradient'], c='c')
-
-    # ax3.plot(bot.memory['funds'])
-
-    plt.show()
 
 
 if __name__ == '__main__':
@@ -117,10 +122,9 @@ if __name__ == '__main__':
     for df in get_datasets():
         exchange = df.loc[0, 'exchange']
         pair = df.loc[0, 'pair']
-        results = backtest(df)
+        results = backtest(df, plot=True)
         results.update({'exchange': exchange, 'pair': pair})
         results_list.append(results)
-        print(results)
 
     pd.DataFrame(results_list).sort_values(['end funds']).to_csv(os.path.join(cwd, 'results.csv'), index=False)
 

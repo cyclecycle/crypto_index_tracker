@@ -1,38 +1,56 @@
+import os
+import sys
+from pathlib import Path
 import operator
 import warnings
 from datetime import datetime
 # warnings.simplefilter('ignore')
 import numpy as np
+from functools import partial
+import yaml
+
+ROOT = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
+sys.path.insert(0, str(ROOT))
+import helpers
+
+RULE_SET_DIR = os.path.join(ROOT, 'trade/rule_sets')
+
+from .indicators import Indicators
 
 
 class CoreBot:
 
     '''
         Responsible for
+            reading the rule set,
             step logic,
             short-term memory,
             determining actions based on the rule set,
             keeping funds and trading positions up to date,
-            interfacing with trading client/s,
+            interfacing with trading client/s OR simulating trading,
             logging
-        Classes extending this must define:
-            self.observable_funcs - dict of methods, defined within the class, that return values describing the current state
-            self.action_funcs - dict of methods, defined within the class, that carry out thy bidding
     '''
 
-    def __init__(self, funds, rule_set, memory_size=1024, verbose=False):
-        self.funds = funds
-        # fee_coeff here
-        self.rule_set = rule_set
-        self.positions = []  # Trade positions held
-        self.verbose = verbose
-        self.memory_size = memory_size
-        self.memory = {}
-        if not 'wait' in self.action_funcs:
-            self.action_funcs['wait'] = lambda: {}
+    def __init__(self, rule_set=None, funds=100, memory_size=1024, verbose=False):
 
-    def step(self, price):
-        self.memorize('price', price)
+        self.funds = funds
+        self.positions = []  # Trade positions held
+        self.memory = {}  # Keep a limited history of observables and actions taken
+        self.memory_size = memory_size  # Number of memory slots
+        self.verbose = verbose
+
+        ''' Initialise rule set '''
+        if rule_set:
+            self.raw_rule_set = rule_set
+            self.init_rule_set()
+            self.init_observables()
+            self.init_actions()
+
+    ''' Core '''
+
+    def step(self, **inputs):
+        for k, v in inputs.items():
+            self.memorize(k, v)
         self.refresh_observables()
         action = self.decide_action()
         func = self.action_funcs[action]
@@ -56,7 +74,7 @@ class CoreBot:
             self.memorize(observable, val)
 
     def decide_action(self):
-        # Check current observables against rule set and return action
+        ''' Check current observables against rule set and return action '''
         ops = {
             '>': operator.gt,
             '<': operator.lt,
@@ -64,25 +82,24 @@ class CoreBot:
             '<=': operator.le,
             '=': operator.eq
         }
-        for item in self.rule_set:
+        for rule in self.rule_set['rules']:
             conditions_met = 0
-            for condition in item['conditions']:
+            for condition in rule['conditions']:
                 observable = condition['observable']
                 op, val = condition['value']
                 op_func = ops[op]
                 if op_func(self.memory[observable][-1], val):
                     conditions_met += 1
-            if conditions_met == len(item['conditions']):
-                # if item['action'] == 'sell':
-                #     print(item['conditions'])
-                #     self.current_state()
-                return item['action']
-        return 'wait'  # Default
+            if conditions_met == len(rule['conditions']):
+                return rule['action']
+        return self.default_action
 
-    def trade(self, type=None, with_funds=None):
+    def trade(self, _type, with_funds=None):
+        ''' If no trading client, it's a simulation '''
+
         current_price = self.memory['price'][-1]
 
-        if type == 'buy':
+        if _type == 'buy':
             assert with_funds, 'Must provide with_funds if buying'
             self.funds -= with_funds
             amount = with_funds / current_price
@@ -93,7 +110,7 @@ class CoreBot:
             self.positions.append(position)
             return position
 
-        if type == 'sell':
+        if _type == 'sell':
             position = self.positions[0]  # For now assume only one position held
             relinquished = position['amount'] * current_price
             self.funds += relinquished
@@ -105,6 +122,57 @@ class CoreBot:
                 'net': relinquished - position['invested']}
             return result
 
+    ''' Convenience methods '''
+
+    def load_rule_set(self, filename):
+        with open(os.path.join(RULE_SET_DIR, filename)) as f:
+            self.raw_rule_set = yaml.load(f)
+        self.init_rule_set()
+        self.init_observables()
+        self.init_actions()
+
+    def init_rule_set(self):
+        ''' Substitute variables defined in rule set '''
+        new_rule_set = self.raw_rule_set.copy()
+        del new_rule_set['vars']
+        self.rule_set = helpers.recursive_replace(new_rule_set, self.raw_rule_set['vars'])
+        ''' Set default action '''
+        try:
+            self.default_action = self.rule_set['rules']['default']
+            del self.rule_set['rules']['default']
+        except:
+            self.default_action = 'wait'
+
+    def init_observables(self):
+        self.observable_funcs = self.init_method_dict(self.rule_set['observables'])
+        if not 'n_positions' in self.observable_funcs:
+            self.observable_funcs['n_positions'] = lambda: len(self.positions)
+
+    def init_actions(self):
+        self.action_funcs = self.init_method_dict(self.rule_set['actions'])
+        if not 'wait' in self.action_funcs:
+            self.action_funcs['wait'] = lambda: {}
+
+    def init_method_dict(self, dict_from_rule_set):
+        method_dict = {}
+        for key, vals in dict_from_rule_set.items():
+            func = self.__getattribute__(vals['func'])  # Get the method
+            args = vals.get('args', [])
+            kwargs = vals.get('kwargs', {})
+            func = partial(func, *args, **kwargs)  # Construct the new callable
+            method_dict[key] = func
+        return method_dict
+
+    def current_state(self, with_timestamp=False):
+        ''' Gives latest values in memory for debugging / logging purposes '''
+        state = {k: vals[-1] for k, vals in self.memory.items()}
+        if with_timestamp:
+            state.update({'timestamp': datetime.now()})
+        if self.verbose:
+            for k, v in state.items():
+                print('\n', k + ':', v, end='\r')
+        return state
+
     def log(self, message, details=None, ignore_wait=True):
         if ignore_wait:
             try:
@@ -112,112 +180,23 @@ class CoreBot:
                     return
             except: pass
         if self.verbose:
-            # print(message)
-            print(details)
-            # for key, val in details.items():
-                # print(key, ': ', val)
-
-    def current_state(self):
-        ''' Shows the latest value for everything in memory for debugging / logging purposes '''
-        state = {k: vals[-1] for k, vals in self.memory.items()}
-        if self.verbose:
-            for k, v in state.items():
+            for k, v in details.items():
                 print('\n', k + ':', v, end='\r')
 
 
-class Bot(CoreBot):
-    def __init__(self, *args, **kwargs):
+class Bot(CoreBot, Indicators):
 
-        self.observable_funcs = {
-            'n_positions': lambda: len(self.positions),
-            'sma10': lambda: self.sma(window_size=10),
-            'sma45': lambda: self.sma(window_size=45),
-            'sma10_gradient': lambda: self.gradient('sma10', window_size=10),
-            'sma45_gradient': lambda: self.gradient('sma45', window_size=45),
-        }
-        self.action_funcs = {
-            'buy': self.buy,
-            'sell': self.sell,
-        }
-        super().__init__(*args, **kwargs)
-
-    ''' Observables '''
-
-    def sma(self, window_size=60):
-        try:
-            data = self.memory['price'][-window_size:]
-            val = np.mean(np.array(data))
-            return val
-        except IndexError as e:  # Window size exceeds current memory
-            return np.nan
-
-    def gradient(self, observable, window_size=60):
-        try:
-            val = np.gradient(self.memory[observable][-window_size:])[-1]
-            return val
-        except IndexError as e:
-            pass
-        except ValueError as e:
-            pass
-        except KeyError as e:
-            print('Warning: observable does not exist')
-            pass
-        return np.nan
-
-    def upcross(self, a, b):
-        ''' Signal if a surpasses b '''
-        pass
-
-    def downcross(self, a, b):
-        ''' Signal if a falls below b '''
-        pass
-
-
-    ''' Actions '''
-
-    def buy(self):
-        with_funds = self.funds
-        result = self.trade(type='buy', with_funds=with_funds)  # Other params like stoploss etc.
-        return result
-
-    def sell(self):
-        result = self.trade(type='sell')
-        # Profit scraping here for example
+    def buy(self, with_funds_frac=0.1):
+        with_funds = self.funds * with_funds_frac
+        result = self.trade('buy', with_funds=with_funds)  # Other params like stoploss etc.
         return result
 
 
 if __name__ == '__main__':
 
-    example_rule_set = [  # The first element in the rule set to have its conditions met has its action taken (i.e, order by precedence)
-        {
-            'action': 'buy',  # Action names correspond to bot.action_funcs
-            'conditions': [  # If multiple conditions in list, all must be met
-                {  # Each condition consists of an observable and a value check
-                    'observable': 'sma_gradient',  # Observables correspond to values calculated at each step by bot.observable_funcs
-                    'value': ('>', 2)
-                },
-                {
-                    'observable': 'n_positions',
-                    'value': ('<', '1')  # Only want one position active
-                }
-            ]
-        },
-        {
-            'action': 'sell',
-            'conditions': [
-                {
-                    'observable': 'n_positions',
-                    'value': ('>=', 1)  # Must have one or more positions in order to sell
-                },
-                {
-                    'observable': 'sma_gradient',
-                    'value': ('<', -2)
-                }
-            ]
-        }
-    ]
-
-    bot = Bot(100, example_rule_set, verbose=True)
-    data = [5, 8, 3, 6, 5, 7, 4, 6, 5, 10, 15, 15, 15, 15, 15, 3, 2, 1, 0]
-    for d in data:
-        bot.step(d)
+    bot = Bot(funds=1000, verbose=True)
+    bot.load_rule_set('rs2.yaml')
+    price_list = [5, 8, 3, 6, 5, 7, 4, 6, 5, 10, 15, 15, 15, 15, 15, 3, 2, 1, 0]
+    for p in price_list:
+        inputs = {'price': p, 'other_info': 123}
+        bot.step(**inputs)
