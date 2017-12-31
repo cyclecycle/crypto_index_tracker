@@ -55,6 +55,7 @@ class CompareTwoExchangesTracker(Tracker):
         df = pd.DataFrame(columns=cols)
 
         for i in range(self.num_snaps):
+            print('Snapshot: {}'.format(i))
             df2 = compare_two_exchanges(*args)
             row = {}
             for p in range(len(base)):

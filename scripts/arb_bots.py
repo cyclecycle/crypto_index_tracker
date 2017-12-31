@@ -3,30 +3,26 @@ from prices.snapshots import compare_two_exchanges_ccxt
 import ccxt
 import time
 
-def kraken_binance_ETC_ETH(eth_in_binance):
-    """
-    ETC tends to be 1-2% cheaper on Kraken than Binance.
-    Need ~equivalent amount of ETC in Kraken as ETH in Binance for simultaneous trade.
-    """
-    kraken = CLIENTS['Kraken']
-    binance = CLIENTS['Binance']
+def min_gain_calc(base, quote, funds, client1, client2):
 
     flag = False
     undercut = 0.001
     while not flag:
-        pdict, mpd = compare_two_exchanges_ccxt('ETC', 'ETH', kraken, binance)
+        pdict, mpd = compare_two_exchanges_ccxt(base, quote, client1, client2)
         # print(pdict)
+
+        buy = 1 if mpd < 0 else 2
         print('Min % diff: {}'.format(mpd))
 
         bid = pdict['Binance']['ask'] * (1 - undercut)
         ask = pdict['Kraken']['bid'] * (1 + undercut)
 
-        withdrawal_fees = (kraken.describe()['fees']['funding']['withdraw']['ETH'],
-                           binance.describe()['fees']['funding']['withdraw']['ETC'])
-        taker_fees = (kraken.describe()['fees']['trading']['taker'], binance.describe()['fees']['trading']['taker'])
+        withdrawal_fees = (client1.describe()['fees']['funding']['withdraw'][quote],
+                           client2.describe()['fees']['funding']['withdraw'][base])
+        taker_fees = (client1.describe()['fees']['trading']['taker'], client2.describe()['fees']['trading']['taker'])
         # taker_fees = (taker_fees[0], 0)
-        estimated_min_gain = (eth_in_binance * ((1 - taker_fees[1]) / bid) - withdrawal_fees[1]) * \
-                             ask * (1 - taker_fees[0]) - withdrawal_fees[0] - eth_in_binance
+        estimated_min_gain = (funds * ((1 - taker_fees[1]) / bid) - withdrawal_fees[1]) * \
+                             ask * (1 - taker_fees[0]) - withdrawal_fees[0] - funds
 
         print('Min Gain: {}'.format(estimated_min_gain))
         print('Binance ask: {:.5f}, My bid: {:.5f}, Binance bid: {:.5f}'.format(

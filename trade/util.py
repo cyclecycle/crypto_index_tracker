@@ -19,7 +19,6 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
     pd.set_option('expand_frame_repr', False)
     pd.options.display.float_format = '{:.2f}'.format
 
-
     # build df columns from currencies
     df_cols = ['Exchange']
     totals = {}
@@ -113,7 +112,6 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
         [df.iloc[:, 0], df.iloc[:, 1:-3].sort_values(by=len(df) - 1, ascending=False, axis=1), df.iloc[:, -3:]], axis=1)
 
     print(df)
-
     # profit calc
     if funds_invested is not None:
         current_value = df['Total (GBP)'].values[-2]

@@ -3,4 +3,4 @@ from private import CLIENTS  # Dict of ccxt clients instantiated with private AP
 
 
 if __name__ == '__main__':
-    df = get_total_balance(CLIENTS, wallets={'SC': 11740}, gbp_only=False, funds_invested=4500)
+    df = get_total_balance(CLIENTS, wallets={'SC': 11740}, gbp_only=False, funds_invested=5500)
