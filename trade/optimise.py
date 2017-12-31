@@ -37,15 +37,15 @@ def extend_trade_routes(routes, end_fsym, pair_data_list):
             else:
                 linking_pairs = pairs_with_tsym(fsym, pair_data_list)
                 new_chains = [route.append(pair) for pair in linking_pairs]
-                build_trade_routes(new_chains, end_fsym, pair_data_list)
+                extend_trade_routes(new_chains, end_fsym, pair_data_list)
 
 
 def trade_route_outcomes(route, in_amount, fee_perc=0.03):
     """
-    Calculate outcome of a trading route
-    :param route: list of pairs. assume that we're tsym and buying fsym for each pair.
+    Calculate outcomes for each trade in the route
+    :param route: list of pairs. assume that we're selling tsym and buying fsym for each pair
     :param in_amount: amount of currency in terms of the starting tsym
-    :return: list of amounts corresponding to each pair in the route, where the last element is the end result.
+    :return: list of amounts corresponding to each pair in the route, where the last element is the end result
     """
     fee_coeff = 1 - fee_perc
     new_amount = (in_amount * fee_coeff) * (1 / route[0]['price'])  # Outcome for first pair
@@ -59,11 +59,7 @@ def trade_route_outcomes(route, in_amount, fee_perc=0.03):
 
 def best_trading_route(routes, in_amount=100):
     """
-    :param pair2price: list of dicts containing currency pairs and prices
-    :param fcurr: currency to be sold
-    :param in_amount: amount of fcurr to be sold
-    :param tcurr: currency to be maximised
-    :return: best route (list of trading pairs), predicted in_amount
+    :return: best route (list of trading pair dicts), predicted outcome amount
     """
     best_route = None
     highest_outcome = 0
