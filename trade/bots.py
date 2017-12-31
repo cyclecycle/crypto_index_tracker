@@ -15,7 +15,7 @@ import helpers
 
 RULE_SET_DIR = os.path.join(ROOT, 'trade/rule_sets')
 
-from indicators import Indicators
+from .indicators import Indicators
 
 
 class CoreBot:

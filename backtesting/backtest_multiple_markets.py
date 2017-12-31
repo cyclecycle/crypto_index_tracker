@@ -25,8 +25,11 @@ def get_datasets():
         cur = con.cursor()
         cur.execute('select distinct(exchange) from exchange_data')
         exchanges = flatten(cur.fetchall())
+        print(exchanges)
         cur.execute('select distinct(pair) from exchange_data')
         pairs = flatten(cur.fetchall())
+        print(pairs)
+        raise
         for exchange in exchanges:
             for pair in pairs:
 
