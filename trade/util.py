@@ -2,6 +2,8 @@ import ccxt
 from forex_python.converter import CurrencyRates
 import pandas as pd
 from cryptocompy import price
+# thought about using coinmarketcap but it requires full coin names as inputs!
+from coinmarketcap import Market
 
 FIAT = ['GBP', 'USD', 'EUR']
 
@@ -9,6 +11,9 @@ FIAT = ['GBP', 'USD', 'EUR']
 def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None):
     """
     Analyses balance of funds across one or more exchanges.
+
+    Note: Prices for small coins like IOTA and XRB are currently incorrect on cryptocompare.
+
     :param clients: Dict of ccxt authenticated clients with exchange names as keys
     :param wallets: optional dict of coins held in private wallets (e.g. {'BTC': 1.1, 'LTC': 0.02})
     :param gbp_only: optionally return GBP values only
@@ -32,6 +37,7 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
         for curr in totals[ex]:
             if curr not in FIAT:
                 coins.add(curr)
+
     # add wallets
     totals['Wallets'] = {}
     for curr in wallets:
@@ -42,8 +48,8 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
     df = pd.DataFrame(columns=df_cols)
     avg_prices = price.get_current_price([c for c in coins if c != 'BTC'], 'BTC')
     btc2gbp = price.get_current_price('BTC', 'GBP')['BTC']['GBP']
-    print(avg_prices)
-    print(btc2gbp)
+    # print(avg_prices)
+    # print(btc2gbp)
 
     # build row values for each exchange
     for ex in totals:
@@ -150,4 +156,5 @@ def quick_buy(client, pair, funds, execute=False):
 
 
 if __name__ == '__main__':
-    pass
+    cmc = Market()
+    print(cmc.ticker('Litecoin'))

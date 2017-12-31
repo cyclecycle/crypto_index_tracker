@@ -3,6 +3,7 @@ from prices.snapshots import compare_two_exchanges_ccxt
 import ccxt
 import time
 
+
 def min_gain_calc(base, quote, funds, client1, client2):
 
     flag = False
@@ -42,4 +43,4 @@ def min_gain_calc(base, quote, funds, client1, client2):
 
 
 if __name__ == '__main__':
-    kraken_binance_ETC_ETH(eth_in_binance=2)
+    min_gain_calc('LTC', 'ETH', 2, CLIENTS['Kraken'], CLIENTS['GDAX'])
