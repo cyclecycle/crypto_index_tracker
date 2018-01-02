@@ -20,7 +20,9 @@ class Tracker:
             ext = '.csv' if not log_filename.endswith('.csv') else ''
             self.csv_path = '{}/data/{}{}'.format(os.path.dirname(os.path.abspath(__file__)), log_filename, ext)
 
-    def load_csv(self, path):
+    def load_csv(self, path=None):
+        if path is None:
+            path = self.csv_path
         self.df = pd.read_csv(path)
 
     def track(self):

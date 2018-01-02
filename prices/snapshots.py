@@ -77,7 +77,6 @@ def compare_two_exchanges_ccxt(base, quote, client1, client2):
     """
     e1_tick = client1.fetch_ticker(base + '/' + quote)
     e2_tick = client2.fetch_ticker(base + '/' + quote)
-    df = pd.DataFrame(columns=['Exchange', 'Bid', 'Ask'])
     price_dict = {
         client1.describe()['name']: {
             'bid': e1_tick['bid'],
