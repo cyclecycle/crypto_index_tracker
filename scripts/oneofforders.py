@@ -43,17 +43,7 @@ if __name__ == '__main__':
     # orders = kucoin.fetch_trades('KCS/ETH')
     # print(orders)
 
-    bal1 = binance.fetch_balance()['BNB']['total']
-    print(bal1)
-    order = binance.create_order('BNB/ETH', 'market', 'buy', 2)
-    print(order)
-    try:
-        print(binance.fetch_order(order['id'], symbol='BNB/ETH'))
-    except:
-        pass
-    time.sleep(10)
-    bal2 = binance.fetch_balance()['BNB']['total']
-    print(bal2)
-    print(bal2 - bal1)
+    print(kraken.create_order('ETH/EUR', 'limit', 'buy', 3, price=920))
+    # print(binance.fetch_order_book('NEO/ETH'))
 
     # print(binance.withdraw('NEO', int(amount), 'AHckMs2PWojV6D3SKRrGmHMkwQCt15Egdm'))
