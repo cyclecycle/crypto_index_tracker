@@ -1,6 +1,7 @@
 import ccxt
 from forex_python.converter import CurrencyRates
 import pandas as pd
+import time
 from cryptocompy import price
 # thought about using coinmarketcap but it requires full coin names as inputs!
 from coinmarketcap import Market
@@ -146,13 +147,41 @@ def quick_buy(client, pair, funds, execute=False):
     ask = tick['ask']
     mybid = tick['bid'] * 1.01
     amount = funds / mybid
-    amount = client.amount_to_lots(pair, amount)  # for binance
-
+    amount = int(amount * 1e3)/1e3
+    # amount = client.amount_to_lots(pair, amount)  # for binance
+    print(amount)
     if execute:
         order = client.create_order(pair, 'limit', 'buy', amount, price=mybid)
         return order
     else:
         return {'bid': mybid, 'amount': amount}
+
+
+def wait_for_fill(pair, client, id, timeout=60):
+    """
+    Waits for limit order to fill.
+    :param pair: currency pair (e.g. BTC/LTC)
+    :param client: ccxt client
+    :param id: order id from ccxt order (e.g. order['id'])
+    :param timeout: how long to wait - default is 10 minutes
+    :return: will raise an error if it times out
+    """
+    for t in range(timeout):
+        curr_order = client.fetch_order(id, pair)
+        print('Status: {}, Fill amount: {}, Price: {}'.format(curr_order['status'], curr_order['filled'], curr_order['price']))
+        if curr_order['status'] != 'open':
+            return curr_order
+        time.sleep(10)
+    raise TimeoutError('Limit trade has not filled. Adjust order!')
+
+
+def get_spread(base, quote, clients):
+    """Returns spread for given pair for each client in clients."""
+    spread = {}
+    for c in clients:
+        tick = c.fetch_ticker(base + '/' + quote)
+        spread[c.describe()['name']] = {'bid': tick['bid'], 'ask': tick['ask']}
+    return spread
 
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import datetime
 import time
 import pandas as pd
+from ccxt.base.errors import ExchangeError
 
 """ Price snapshot functions using cryptocompy """
 
@@ -70,25 +71,54 @@ def compare_two_exchanges(base, quote, e1, e2):
     return df
 
 
-def compare_two_exchanges_ccxt(base, quote, client1, client2):
+def compare_order_books(base, quote, clients):
     """
-    Compares one or more pair prices for 2 exchanges.
-    Single pair only.
+    Compares bids and asks to find maximum % difference between prices on ccxt clients for pairs.
     """
-    e1_tick = client1.fetch_ticker(base + '/' + quote)
-    e2_tick = client2.fetch_ticker(base + '/' + quote)
-    price_dict = {
-        client1.describe()['name']: {
-            'bid': e1_tick['bid'],
-            'ask': e1_tick['ask']},
-        client2.describe()['name']: {
-            'bid': e2_tick['bid'],
-            'ask': e2_tick['ask']}}
+    if isinstance(base, str):
+        base = [base]
+    if isinstance(quote, str):
+        quote = [quote]
 
-    # if min % diff > 0, buy on exchange 2, sell on exchange 1
-    min_pd = 100 * (e1_tick['bid']/e2_tick['ask'] - 1)
+    cols = ['pair']
+    for client in clients:
+        cols += [client.describe()['name'] + ' ask', client.describe()['name'] + ' bid']
+    cols += ['% diff', 'buy', 'sell']
+    df = pd.DataFrame(columns=cols)
 
-    return price_dict, min_pd
+    for b in base:
+        for q in quote:
+            pair = b + '/' + q
+            row = {}
+            for client in clients:
+                try:
+                    tick = client.fetch_ticker(pair)
+                except ExchangeError:
+                    tick = {'ask': None, 'bid': None}
+
+                row[client.describe()['name'] + ' ask'] = tick['ask']
+                row[client.describe()['name'] + ' bid'] = tick['bid']
+
+            max_perc_diff = -100
+            buy, sell = None, None
+            for buy_client in row:
+                if buy_client.endswith('ask'):
+                    for sell_client in row:
+                        if sell_client.endswith('bid'):
+                            if row[sell_client] is not None and row[buy_client] is not None:
+                                perc_diff = (row[sell_client] / row[buy_client] - 1) * 100
+                                if perc_diff > max_perc_diff:
+                                    buy = buy_client[:-4]
+                                    sell = sell_client[:-4]
+                                    max_perc_diff = perc_diff
+
+            row['pair'] = pair
+            row['buy'] = buy
+            row['sell'] = sell
+            row['% diff'] = max_perc_diff
+            df = df.append(row, ignore_index=True)
+
+    return df
 
 
 def find_matching_pairs(e1, e2):
