@@ -20,7 +20,9 @@ class Tracker:
             ext = '.csv' if not log_filename.endswith('.csv') else ''
             self.csv_path = '{}/data/{}{}'.format(os.path.dirname(os.path.abspath(__file__)), log_filename, ext)
 
-    def load_csv(self, path):
+    def load_csv(self, path=None):
+        if path is None:
+            path = self.csv_path
         self.df = pd.read_csv(path)
 
     def track(self):
@@ -55,6 +57,7 @@ class CompareTwoExchangesTracker(Tracker):
         df = pd.DataFrame(columns=cols)
 
         for i in range(self.num_snaps):
+            print('Snapshot: {}'.format(i))
             df2 = compare_two_exchanges(*args)
             row = {}
             for p in range(len(base)):
@@ -66,6 +69,37 @@ class CompareTwoExchangesTracker(Tracker):
             if self.csv_path is not None:
                 df.to_csv(self.csv_path)
         self.df = df
+
+class CompareOrderBooks(Tracker):
+
+    def __init__(self, num_snaps=60, interval=60, log_filename=None):
+        super().__init__(num_snaps=num_snaps, interval=interval, log_filename=log_filename)
+
+    def track(self, *args):
+        """Input args for compare_two_exchanges() function"""
+        base = [args[0]] if isinstance(args[0], str) else args[0]
+        quote = [args[1]] if isinstance(args[1], str) else args[1]
+        cols = []
+        for b in base:
+            for q in quote:
+                cols.append(b + '-' + q)
+        df = pd.DataFrame(columns=cols)
+
+        for i in range(self.num_snaps):
+            print('Snapshot: {}'.format(i))
+            df2 = compare_two_exchanges(*args)
+            row = {}
+            for p in range(len(base)):
+                name = df2.iloc[p]['Pair']
+                val = df2.iloc[p]['% diff']
+                row[name] = val
+            df = df.append(row, ignore_index=True)
+            time.sleep(self.interval)
+            if self.csv_path is not None:
+                df.to_csv(self.csv_path)
+        self.df = df
+
+
 
 
 if __name__ == '__main__':

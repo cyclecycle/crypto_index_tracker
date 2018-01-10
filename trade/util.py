@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 import pickle
 import ccxt
-# from forex_python.converter import CurrencyRates
+from forex_python.converter import CurrencyRates
 import pandas as pd
+import time
 from cryptocompy import price
 import yaml
 
@@ -19,10 +20,21 @@ CLIENTS = {
     # 'GDAX': ccxt.gdax(API_KEYS['GDAX'])
 }
 
+def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None):
+    """
+    Analyses balance of funds across one or more exchanges.
 
-def get_total_balance(clients, gbp_only=False):
-    """Returns df of total balance over all exchanges"""
+    Note: Prices for small coins like IOTA and XRB are currently incorrect on cryptocompare.
+
+    :param clients: Dict of ccxt authenticated clients with exchange names as keys
+    :param wallets: optional dict of coins held in private wallets (e.g. {'BTC': 1.1, 'LTC': 0.02})
+    :param gbp_only: optionally return GBP values only
+    :param funds_invested: optionally input GBP invested for profit calculation
+    :return: DataFrame of balance
+    """
     eur2gbp = CurrencyRates().get_rate('EUR', 'GBP')
+    pd.set_option('expand_frame_repr', False)
+    pd.options.display.float_format = '{:.2f}'.format
 
     # build df columns from currencies
     df_cols = ['Exchange']
@@ -33,10 +45,19 @@ def get_total_balance(clients, gbp_only=False):
         for curr in totals[ex]:
             if curr not in FIAT:
                 coins.add(curr)
+
+    # add wallets
+    totals['Wallets'] = {}
+    for curr in wallets:
+        totals['Wallets'][curr] = wallets[curr]
+        coins.add(curr)
+
     df_cols += list(coins) + ['EUR', 'GBP', 'Total (GBP)']
     df = pd.DataFrame(columns=df_cols)
-    avg_prices = price.get_current_price(list(coins), 'EUR')
-    print(df_cols)
+    avg_prices = price.get_current_price([c for c in coins if c != 'BTC'], 'BTC')
+    btc2gbp = price.get_current_price('BTC', 'GBP')['BTC']['GBP']
+    # print(avg_prices)
+    # print(btc2gbp)
 
     # build row values for each exchange
     for ex in totals:
@@ -51,8 +72,10 @@ def get_total_balance(clients, gbp_only=False):
                     total_gbp += row[col] * eur2gbp
                 elif col == 'GBP':
                     total_gbp += row[col]
+                elif col == 'BTC':
+                    total_gbp += row[col] * btc2gbp
                 else:
-                    total_gbp += row[col] * avg_prices[col]['EUR'] * eur2gbp
+                    total_gbp += row[col] * avg_prices[col]['BTC'] * btc2gbp
             else:
                 row[col] = 0.
         row['Total (GBP)'] = total_gbp
@@ -72,9 +95,10 @@ def get_total_balance(clients, gbp_only=False):
                 print(eur2gbp)
             elif col == 'GBP' or col == 'Total (GBP)':
                 row_gbp_totals[col] = row_totals[col]
+            elif col == 'BTC':
+                row_gbp_totals[col] = row_totals[col] * btc2gbp
             else:
-                row_gbp_totals[col] = row_totals[col] * avg_prices[col]['EUR'] * eur2gbp
-    print(row_gbp_totals)
+                row_gbp_totals[col] = row_totals[col] * avg_prices[col]['BTC'] * btc2gbp
     df = df.append(row_totals, ignore_index=True)
     df = df.append(row_gbp_totals, ignore_index=True)
 
@@ -96,7 +120,20 @@ def get_total_balance(clients, gbp_only=False):
     perc_row['%'] = 100
     df = df.append(perc_row, ignore_index=True)
 
-    df = df.loc[:, (df != 0).any(axis=0)]  # delete columns where everything is 0
+    # formatting and sorting
+    df = df.loc[:, (df > 1).any(axis=0)]  # delete columns with less than £1 in
+    df = df[:-3].sort_values(by='%', ascending=False).reset_index(drop=True).append(df[-3:], ignore_index=True)
+    df = pd.concat(
+        [df.iloc[:, 0], df.iloc[:, 1:-3].sort_values(by=len(df) - 1, ascending=False, axis=1), df.iloc[:, -3:]], axis=1)
+
+    print(df)
+    # profit calc
+    if funds_invested is not None:
+        current_value = df['Total (GBP)'].values[-2]
+        profit = current_value - funds_invested
+        profitperc = 100 * profit/funds_invested
+        print('\nInvested: £{:.2f}, Current Value: £{:.2f}, Profit: £{:.2f}, {:+.2f}%'.format(
+                funds_invested, current_value, profit, profitperc))
 
     if gbp_only:
         return df[['Exchange', 'Total (GBP)']][:-2]
@@ -147,8 +184,57 @@ def get_inv_pairs(pair_data_list):
     return pair_data_list
 
 
+def quick_buy(client, pair, funds, execute=False):
+    """
+    Make a limit buy just above the current bid price. Prints info.
+    :param client: ccxt client
+    :param pair: currency pair (e.g. 'BTC/EUR')
+    :param funds: quote funds
+    :param execute: safety param, set True to execute trade.
+    :return: order info
+    """
+    tick = client.fetch_ticker(pair)
+    bid = tick['bid']
+    ask = tick['ask']
+    mybid = tick['bid'] * 1.01
+    amount = funds / mybid
+    amount = int(amount * 1e3)/1e3
+    # amount = client.amount_to_lots(pair, amount)  # for binance
+    print(amount)
+    if execute:
+        order = client.create_order(pair, 'limit', 'buy', amount, price=mybid)
+        return order
+    else:
+        return {'bid': mybid, 'amount': amount}
+
+
+def wait_for_fill(pair, client, id, timeout=60):
+    """
+    Waits for limit order to fill.
+    :param pair: currency pair (e.g. BTC/LTC)
+    :param client: ccxt client
+    :param id: order id from ccxt order (e.g. order['id'])
+    :param timeout: how long to wait - default is 10 minutes
+    :return: will raise an error if it times out
+    """
+    for t in range(timeout):
+        curr_order = client.fetch_order(id, pair)
+        print('Status: {}, Fill amount: {}, Price: {}'.format(curr_order['status'], curr_order['filled'], curr_order['price']))
+        if curr_order['status'] != 'open':
+            return curr_order
+        time.sleep(10)
+    raise TimeoutError('Limit trade has not filled. Adjust order!')
+
+
+def get_spread(base, quote, clients):
+    """Returns spread for given pair for each client in clients."""
+    spread = {}
+    for c in clients:
+        tick = c.fetch_ticker(base + '/' + quote)
+        spread[c.describe()['name']] = {'bid': tick['bid'], 'ask': tick['ask']}
+    return spread
+
+
 if __name__ == '__main__':
-    print(get_total_balance(CLIENTS, gbp_only=False))
-
-
-
+    cmc = Market()
+    print(cmc.ticker('Litecoin'))

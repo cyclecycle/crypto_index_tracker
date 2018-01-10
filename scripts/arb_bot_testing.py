@@ -2,8 +2,12 @@ from private import CLIENTS, ADDRESSES
 import ccxt
 import time
 
-kraken = CLIENTS['Kraken']
-binance = CLIENTS['Binance']
+# kraken = CLIENTS['Kraken']
+# binance = CLIENTS['Binance']
+
+
+
+
 
 # print([mar['symbol'] for mar in kraken.fetch_markets()])
 #
@@ -26,19 +30,7 @@ binance = CLIENTS['Binance']
 #
 # if gain > 1:
 #
-#     k_bidprice = k_tick['bid'] * 1.001
-#     print(k_bidprice)
-#     print(1/k_bidprice)
-#     order = kraken.create_order('ETC/ETH', 'limit', 'sell', 1/k_bidprice, price=k_bidprice)
-#     print(order)
-#
-#     openflag = True
-#     while openflag == True:
-#         curr_order = kraken.fetch_order(order['id'], 'ETC/ETH')
-#         print(curr_order['status'], curr_order['filled'], curr_order['price'])
-#         if curr_order['status'] != 'open':
-#             openflag = False
-#         time.sleep(10)
+
 
 # b_tick = binance.fetch_ticker('ETC/ETH')
 # k_tick = kraken.fetch_ticker('ETC/ETH')
