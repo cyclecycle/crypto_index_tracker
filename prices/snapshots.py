@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import datetime
 import time
 import pandas as pd
+from trade.util import calc_market_price
 from ccxt.base.errors import ExchangeError
 
 """ Price snapshot functions using cryptocompy """
@@ -121,6 +122,34 @@ def compare_order_books(base, quote, clients):
     return df
 
 
+def compare_actual_market_prices(base, quote, amount_in_eur, clients):
+    """ Compares actual price for given base amount in EUR """
+
+    amount_in_eur = amount_in_eur / price.get_current_price(base, 'EUR')[base]['EUR']
+
+    cols = ['pair']
+    for client in clients:
+        cols += [client.describe()['name'] + ' buy', client.describe()['name'] + ' sell']
+    df = pd.DataFrame(columns=cols)
+
+    pair = base + '/' + quote
+    row = {}
+
+    row['pair'] = pair
+    for client in clients:
+        try:
+            buy_price, sell_price = calc_market_price(base, quote, amount_in_eur, client)
+        except ExchangeError:
+            print('error')
+            continue
+
+        row[client.describe()['name'] + ' buy'] = buy_price
+        row[client.describe()['name'] + ' sell'] = sell_price
+    df = df.append(row, ignore_index=True)
+
+    return df
+
+
 def find_matching_pairs(e1, e2):
     """Returns list of currency pairs listed on both input exchanges. Also checks reverse pairs."""
     # this is actually pretty difficult with this library!
@@ -139,4 +168,4 @@ class PairNotListedError(Exception):
     pass
 
 if __name__ == '__main__':
-    print(compare_two_exchanges(['ETH', 'LTC'], 'BTC', 'Kraken', 'Binance'))
+    pass

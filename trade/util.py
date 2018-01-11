@@ -41,7 +41,11 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
     totals = {}
     coins = set()
     for ex in clients:
-        totals[ex] = clients[ex].fetch_balance()['total']
+        totals_raw = clients[ex].fetch_balance()['total']
+        totals[ex] = {}
+        for curr in totals_raw:
+            if totals_raw[curr] > 0.01:
+                totals[ex][curr] = totals_raw[curr]
         for curr in totals[ex]:
             if curr not in FIAT:
                 coins.add(curr)
@@ -92,7 +96,6 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
             row_totals[col] = sum(df[col].values)
             if col == 'EUR':
                 row_gbp_totals[col] = row_totals[col] * eur2gbp
-                print(eur2gbp)
             elif col == 'GBP' or col == 'Total (GBP)':
                 row_gbp_totals[col] = row_totals[col]
             elif col == 'BTC':
@@ -114,7 +117,7 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
     perc_row = {}
     for col in df_cols:
         if col == 'Exchange':
-            perc_row[col] = 'Total %'
+            perc_row[col] = '%'
         else:
             perc_row[col] = 100 * df[col].values[-1] / df['Total (GBP)'].values[-1]
     perc_row['%'] = 100
@@ -196,7 +199,7 @@ def quick_buy(client, pair, funds, execute=False):
     tick = client.fetch_ticker(pair)
     bid = tick['bid']
     ask = tick['ask']
-    mybid = tick['bid'] * 1.01
+    mybid = int(tick['bid'] * 1.01 * 1e6) / 1e6
     amount = funds / mybid
     amount = int(amount * 1e3)/1e3
     # amount = client.amount_to_lots(pair, amount)  # for binance
@@ -233,6 +236,26 @@ def get_spread(base, quote, clients):
         tick = c.fetch_ticker(base + '/' + quote)
         spread[c.describe()['name']] = {'bid': tick['bid'], 'ask': tick['ask']}
     return spread
+
+
+def calc_market_price(base, quote, amount, client):
+    """ Calculates price of market order based on current depth """
+    order_book = client.fetch_order_book(base + '/' + quote)
+    for side in ['asks', 'bids']:
+        fill, cost = 0, 0
+        depth = order_book[side]
+        while fill < amount:
+            for order in depth:
+                delta = min(order[1], (amount - fill))
+                cost += order[0] * delta
+                fill += delta
+        assert fill == amount, 'fill: {}, amount: {}'.format(fill, amount)
+        if side == 'asks':
+            buy_price = cost / fill
+        else:
+            sell_price = cost / fill
+
+    return buy_price, sell_price
 
 
 if __name__ == '__main__':

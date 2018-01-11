@@ -1,4 +1,5 @@
-from prices.snapshots import compare_two_exchanges, compare_order_books
+from prices.snapshots import compare_two_exchanges, compare_order_books, compare_actual_market_prices
+from private import CLIENTS
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,6 +20,8 @@ class Tracker:
         if log_filename is not None:
             ext = '.csv' if not log_filename.endswith('.csv') else ''
             self.csv_path = '{}/data/{}{}'.format(os.path.dirname(os.path.abspath(__file__)), log_filename, ext)
+        else:
+            self.csv_path = None
 
     def load_csv(self, path=None):
         if path is None:
@@ -89,7 +92,10 @@ class CompareOrderBooksTracker(Tracker):
 
         for i in range(self.num_snaps):
             print('Snapshot: {}'.format(i))
-            df2 = compare_order_books(*args)
+            try:
+                df2 = compare_order_books(*args)
+            except:
+                continue
             row = {}
             for p in range(len(base)):
                 name = df2.iloc[p]['pair']
@@ -102,7 +108,45 @@ class CompareOrderBooksTracker(Tracker):
         self.df = df
 
 
+class CompareActualMarketPricesTracker(Tracker):
+
+    def __init__(self, num_snaps=60, interval=60, log_filename=None):
+        super().__init__(num_snaps=num_snaps, interval=interval, log_filename=log_filename)
+
+    def track(self, *args):
+        df = compare_actual_market_prices(*args)
+        base, quote = args[0], args[1]
+        for i in range(self.num_snaps):
+            print('Snapshot: {}'.format(i))
+            time.sleep(self.interval)
+            try:
+                df = df.append(compare_actual_market_prices(*args), ignore_index=True)
+            except:
+                print('error')
+                raise
+                continue
+            if self.csv_path is not None:
+                df.to_csv(self.csv_path)
+        self.df = df
+
+    def plot(self):
+        linestyles = ['-', '--', '-.', ':']
+        i = 0
+        for col in self.df:
+            if 'named' in col or 'pair' in col:
+                pass
+            else:
+                if col.endswith('buy'):
+                    plt.plot(self.df[col], linestyle=linestyles[i], color='g', label=col)
+                elif col.endswith('sell'):
+                    plt.plot(self.df[col], linestyle=linestyles[i], color='r', label=col)
+                    i += 1
+        plt.legend()
+        plt.show()
+
+
 if __name__ == '__main__':
-    tracker = CompareOrderBooksTracker(log_filename='neoeth.csv')
-    tracker.track()
+    tracker = CompareActualMarketPricesTracker(num_snaps=100, interval=30, log_filename='neoeth.csv')
+    # tracker.track('NEO', 'ETH', 1000, (CLIENTS['Binance'], CLIENTS['Kucoin']))
+    tracker.load_csv()
     tracker.plot()

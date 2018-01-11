@@ -15,8 +15,8 @@ if __name__ == '__main__':
     # wait_for_fill('BCH/ETH', binance, order['id'])
 
     # GDAX.withdraw('ETH', 0.02, '0x13DAF8C05EF3F9da8Ad21fc1D73Aa4C2712983Cb', {'two_factor_code': 552858})
-    # quick_buy(kraken, 'XMR/EUR', 700, execute=True)
-    # print(kraken.withdraw('ETH', 0.6, '0xb244fc9f7e18fe6aeb6db0aa3ec65a5761aa73ca', params={'key': 'BINANCE ETH'}))
+    # quick_buy(kraken, 'ETH/EUR', 2000, execute=True)
+    # print(kraken.withdraw('ETH', 2.2, '0xb244fc9f7e18fe6aeb6db0aa3ec65a5761aa73ca', params={'key': 'BINANCE ETH'}))
 
 
     # bal = binance.fetch_balance()
@@ -34,7 +34,12 @@ if __name__ == '__main__':
 
 
     # bal = binance.fetch_balance()
-    # print(bal['ETH'], bal['BNB'], bal['LTC'])
+    # print(bal['ETH'])
+
+    # quick_buy(kraken, 'XMR/EUR', 728, execute=True)
+    kraken.create_order('ETH/EUR', 'limit', 'buy', 1, price=1000)
+    # quick_buy(kucoin, 'BNTY/ETH', 1, execute=True)
+    # kraken.withdraw('ETH', 2, '0xb244fc9f7e18fe6aeb6db0aa3ec65a5761aa73ca', params={'key': 'BINANCE ETH'})
     # print(binance.fetch_order('10432418', symbol='BNB/ETH'))
 
     # order = quick_buy(kucoin, 'KCS/ETH', 0.1, execute=True)
@@ -42,8 +47,8 @@ if __name__ == '__main__':
     # print(wait_for_fill('KCS/ETH', kucoin, order['id']))
     # orders = kucoin.fetch_trades('KCS/ETH')
     # print(orders)
-
-    print(kraken.create_order('ETH/EUR', 'limit', 'buy', 3, price=920))
+    # print(kraken.fetch_balance()['ETH'])
+    # print(quick_buy(kraken, 'ETH/EUR', 2000, execute=True))
     # print(binance.fetch_order_book('NEO/ETH'))
 
     # print(binance.withdraw('NEO', int(amount), 'AHckMs2PWojV6D3SKRrGmHMkwQCt15Egdm'))

@@ -1,5 +1,6 @@
 from private import CLIENTS, ADDRESSES
-from trade.util import wait_for_fill, get_spread
+from trade.util import wait_for_fill, get_spread, calc_market_price
+from prices.snapshots import compare_order_books
 import ccxt
 import time
 from datetime import datetime
@@ -112,7 +113,7 @@ class ArbPairBot:
 class BinanceKucoinArbBot:
     """ Simple bespoke arb bot. Start with balances in both exchanges a little more than the value of funds """
     def __init__(self, base, quote, binance_client, kucoin_client, funds=1):
-        self.funds = funds  # in quote curr
+        self.funds = funds  # amount (in quote curr) of each coin on both exchanges (e.g. total amount/4)
         self.base = base
         self.quote = quote
         self.pair = base + '/' + quote
@@ -122,8 +123,7 @@ class BinanceKucoinArbBot:
                 'wfee': (0.1, 0.1),  # manually enter fees for now (base, quote)
                 'tfee': 0.001,
                 'bals': [(binance_client.fetch_balance()[base]['total'], binance_client.fetch_balance()[quote]['total'])],
-                'orders': [],
-                'side': []
+                'orders': []
             },
             'Kucoin': {
                 'client': kucoin_client,
@@ -131,8 +131,7 @@ class BinanceKucoinArbBot:
                 'tfee': 0.001,
                 'bals': [
                     (kucoin_client.fetch_balance()[base]['total'], kucoin_client.fetch_balance()[quote]['total'])],
-                'orders': [],
-                'side': []
+                'orders': []
             }
         }
         self.logs = {
@@ -143,20 +142,20 @@ class BinanceKucoinArbBot:
             'ts': [datetime.utcnow()]
         }
 
-        self.margin_threshold = 0.01  # minimum margin after fees
+        self.margin_threshold = 0.012  # minimum margin after fees
         self.check()
 
     def step(self):
         # check prices
         print('Checking prices...')
-        check, buy = self.check()
+        check = self.check()
         if not check:
             print('Insufficient margin')
             return
         self._funds_check()
 
         # simultaneously trade
-        print('Good price margin - executing trades...')
+        print('Executing trades...')
         self.trade()
 
         # withdraw
@@ -168,11 +167,22 @@ class BinanceKucoinArbBot:
         # update logs
 
     def check(self):
-        # run check func
-        self.price = 0
-        check = 0
-        buy = 0
-        return check, buy
+        df = compare_order_books(self.base, self.quote, (self.clients['Binance']['client'], self.clients['Kucoin']['client']))
+        self.price = sum(df.iloc[0].values[1:-3]) / 4
+        print(df)
+
+        if df['% diff'][0] < 0:
+            return False
+
+        self.buy = df['buy'][0]
+        self.sell = df['sell'][0]
+        buy_price = calc_market_price(self.base, self.quote, self.funds, self.clients[self.buy]['client'])
+        sell_price = calc_market_price(self.base, self.quote, self.funds, self.clients[self.sell]['client'])
+        aprox_gain = (sell_price/buy_price - 1 - self.margin_threshold) * 100
+
+        print('Aprox gain = {:.2f}%'.format(aprox_gain))
+        if aprox_gain < 0:
+            return False
 
     def trade(self):
         pass
@@ -247,6 +257,8 @@ if __name__ == '__main__':
     # print(single_arb_pair_check('LTC', 'BTC', 2, (CLIENTS['Binance'], CLIENTS['Kucoin'])))
     # bot = ArbPairBot('VEN', 'ETH', CLIENTS['Binance'], CLIENTS['Kucoin'], funds=100, market_orders=True, seperate_taker_fees=True)
     # bot = ArbPairBot('B', 'Q', TESTCLIENTS['C0'], TESTCLIENTS['C1'], funds=100)
-    bot = ArbPairBot('BCH', 'ETH', CLIENTS['Binance'], CLIENTS['Kucoin'], funds=100, market_orders=True,
-                     seperate_taker_fees=True)
-    print(bot.check())
+    # bot = ArbPairBot('BCH', 'ETH', CLIENTS['Binance'], CLIENTS['Kucoin'], funds=100, market_orders=True,
+    #                  seperate_taker_fees=True)
+    # print(bot.check())
+
+    bot = BinanceKucoinArbBot('MOD', 'ETH', CLIENTS['Binance'], CLIENTS['Kucoin'])
