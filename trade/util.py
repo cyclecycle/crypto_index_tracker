@@ -1,13 +1,24 @@
+import os
+from pathlib import Path
+import pickle
 import ccxt
 from forex_python.converter import CurrencyRates
 import pandas as pd
 import time
 from cryptocompy import price
-# thought about using coinmarketcap but it requires full coin names as inputs!
-from coinmarketcap import Market
+import yaml
 
 FIAT = ['GBP', 'USD', 'EUR']
 
+CWD = os.path.dirname(os.path.realpath(__file__))
+ROOT = Path(CWD).parents[0]
+with open(os.path.join(ROOT, 'trade/api_keys.yaml')) as f:
+    API_KEYS = yaml.load(f)
+
+CLIENTS = {
+    'BINANCE': ccxt.binance(API_KEYS['BINANCE']),
+    # 'GDAX': ccxt.gdax(API_KEYS['GDAX'])
+}
 
 def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None):
     """
@@ -30,11 +41,7 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
     totals = {}
     coins = set()
     for ex in clients:
-        totals_raw = clients[ex].fetch_balance()['total']
-        totals[ex] = {}
-        for curr in totals_raw:
-            if totals_raw[curr] > 0.:
-                totals[ex][curr] = totals_raw[curr]
+        totals[ex] = clients[ex].fetch_balance()['total']
         for curr in totals[ex]:
             if curr not in FIAT:
                 coins.add(curr)
@@ -85,6 +92,7 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
             row_totals[col] = sum(df[col].values)
             if col == 'EUR':
                 row_gbp_totals[col] = row_totals[col] * eur2gbp
+                print(eur2gbp)
             elif col == 'GBP' or col == 'Total (GBP)':
                 row_gbp_totals[col] = row_totals[col]
             elif col == 'BTC':
@@ -106,7 +114,7 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
     perc_row = {}
     for col in df_cols:
         if col == 'Exchange':
-            perc_row[col] = '%'
+            perc_row[col] = 'Total %'
         else:
             perc_row[col] = 100 * df[col].values[-1] / df['Total (GBP)'].values[-1]
     perc_row['%'] = 100
@@ -131,6 +139,49 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
         return df[['Exchange', 'Total (GBP)']][:-2]
     else:
         return df
+
+
+def get_pair_data_list(client, use_checkpoint=False):
+    checkpoint_path = os.path.join(CWD, 'checkpoints/pair_data_list_checkpoint.p')
+    if use_checkpoint:
+        with open(checkpoint_path, 'rb') as f:
+            return pickle.load(f)
+    markets = client.load_markets()
+    pair_data_list = []
+    for symbol, dd in markets.items():
+        ticker = client.fetch_ticker(symbol)
+        pair_data_list.append({
+            'fsym': dd['base'],
+            'tsym': dd['quote'],
+            'price': ticker['last'],
+            'symbol': symbol,
+            'direction': 'buy',
+            'exchange': client.name
+        })
+    pair_data_list = get_inv_pairs(pair_data_list)
+    with open(checkpoint_path, 'wb') as f:
+        pickle.dump(pair_data_list, f)
+    return pair_data_list
+
+
+def symbols_in_pair_data_list(pair_data_list):
+    return list(set([sublist for _list in [[d['tsym'], d['fsym']] for d in pair_data_list] for sublist in _list]))
+
+
+def get_inv_pairs(pair_data_list):
+    pairs_inv = []
+    for pair in pair_data_list:
+        pair_inv = pair.copy()
+        try:
+            pair_inv['price'] = 1 / pair['price']
+            pair_inv['fsym'] = pair['tsym']
+            pair_inv['tsym'] = pair['fsym']
+            pair_inv['direction'] = 'sell'
+            pairs_inv.append(pair_inv)
+        except ZeroDivisionError as e:
+            pass
+    pair_data_list = pair_data_list + pairs_inv
+    return pair_data_list
 
 
 def quick_buy(client, pair, funds, execute=False):

@@ -1,17 +1,37 @@
 vars:
-  $n_coins: 20
-  $weighting_dict:
+  $metric_weights:
     market_cap_eur: 1
+  $coin_weight_coeffs:  # Alter the final weightings
+    BTC: 0.5
+    BCH: 0
+    BTG: 0
+    LTC: 0.2
+    ETH: 1.5
+    XRP: 0.1
+    ICX: 1.2
+    OMG: 1.2
+    IOTA: 1.3
+    VEN: 30
+    REQ: 25
+    XLM: 5
+    EOS: 3
+    NEO: 2
+    ADA: 0
+    TRX: 0
+    ETC: 0
+    XVG: 0
+    XRB: 3  # Not currently in binance
+  $n_coins: 20
 
 observables:
   coin_data_list:
     func: get_coin_data
-    args: [$n_coins]
+    args: []
 
 actions:
   rebalance:
     func: rebalance
-    args: [coin_data_list, $weighting_dict]
+    args: [coin_data_list, $metric_weights, $coin_weight_coeffs, $n_coins]
 
 rules:
-  default: rebalance
+  default_action: rebalance

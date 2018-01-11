@@ -1,21 +1,26 @@
 import os
 import sys
+import logging
 from pathlib import Path
 import operator
 import warnings
 from datetime import datetime
+from functools import partial
+from pprint import pformat
 # warnings.simplefilter('ignore')
 import numpy as np
-from functools import partial
 import yaml
 
-ROOT = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
+CWD = os.path.dirname(os.path.realpath(__file__))
+ROOT = Path(CWD).parents[0]
+sys.path.insert(0, str(CWD))
 sys.path.insert(0, str(ROOT))
+default_log_path = os.path.join(CWD, 'bot.log')
 import helpers
 
 RULE_SET_DIR = os.path.join(ROOT, 'trade/rule_sets')
 
-from .indicators import Indicators
+from indicators import Indicators
 
 
 class CoreBot:
@@ -31,13 +36,16 @@ class CoreBot:
             logging
     '''
 
-    def __init__(self, rule_set=None, funds=100, memory_size=1024, verbose=False):
+    def __init__(self, rule_set=None, funds=100, memory_size=1024, verbose=False, log_path=default_log_path, name='bot'):
 
         self.funds = funds
         self.positions = []  # Trade positions held
         self.memory = {}  # Keep a limited history of observables and actions taken
         self.memory_size = memory_size  # Number of memory slots
         self.verbose = verbose
+        self.name = name
+
+        self.init_log(log_path)
 
         ''' Initialise rule set '''
         if rule_set:
@@ -130,6 +138,28 @@ class CoreBot:
         self.init_rule_set()
         self.init_observables()
         self.init_actions()
+        self.log('initialised')
+
+    def current_state(self, with_timestamp=False):
+        ''' Gives latest values in memory for debugging / logging purposes '''
+        state = {k: vals[-1] for k, vals in self.memory.items()}
+        if with_timestamp:
+            state.update({'timestamp': datetime.now()})
+        if self.verbose:
+            for k, v in state.items():
+                print('\n', k + ':', v, end='\r')
+        return state
+
+    def log(self, *args, details=None, ignore_wait=True):
+        message = ''
+        for msg in args:
+            if isinstance(msg, str):
+                message += '\n' + msg + '\n'
+            else:
+                message += '\n' + pformat(msg) + '\n'
+        self._log.info(message)
+
+    ''' Initialisation methods '''
 
     def init_rule_set(self):
         ''' Substitute variables defined in rule set '''
@@ -138,8 +168,8 @@ class CoreBot:
         self.rule_set = helpers.recursive_replace(new_rule_set, self.raw_rule_set['vars'])
         ''' Set default action '''
         try:
-            self.default_action = self.rule_set['rules']['default']
-            del self.rule_set['rules']['default']
+            self.default_action = self.rule_set['rules']['default_action']
+            del self.rule_set['rules']['default_action']
         except:
             self.default_action = 'wait'
 
@@ -163,25 +193,16 @@ class CoreBot:
             method_dict[key] = func
         return method_dict
 
-    def current_state(self, with_timestamp=False):
-        ''' Gives latest values in memory for debugging / logging purposes '''
-        state = {k: vals[-1] for k, vals in self.memory.items()}
-        if with_timestamp:
-            state.update({'timestamp': datetime.now()})
-        if self.verbose:
-            for k, v in state.items():
-                print('\n', k + ':', v, end='\r')
-        return state
-
-    def log(self, message, details=None, ignore_wait=True):
-        if ignore_wait:
-            try:
-                if details['action'] == 'wait':
-                    return
-            except: pass
-        if self.verbose:
-            for k, v in details.items():
-                print('\n', k + ':', v, end='\r')
+    def init_log(self, log_path):
+        self._log = logging.getLogger(__name__)
+        fh = logging.FileHandler(log_path)
+        fh.setLevel(logging.DEBUG)
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setLevel(logging.DEBUG)
+        self._log.addHandler(fh)
+        self._log.addHandler(sh)
+        logging.basicConfig(level=logging.DEBUG, handlers=[fh])
+        self._log.info(self.name + ': started')
 
 
 class Bot(CoreBot, Indicators):
