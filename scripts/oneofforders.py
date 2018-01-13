@@ -37,12 +37,12 @@ if __name__ == '__main__':
     # print(bal['ETH'])
 
     # quick_buy(kraken, 'XMR/EUR', 728, execute=True)
-    kraken.create_order('ETH/EUR', 'limit', 'buy', 1, price=1000)
+    # kraken.create_order('ETH/EUR', 'limit', 'buy', 1, price=1000)
     # quick_buy(kucoin, 'BNTY/ETH', 1, execute=True)
     # kraken.withdraw('ETH', 2, '0xb244fc9f7e18fe6aeb6db0aa3ec65a5761aa73ca', params={'key': 'BINANCE ETH'})
     # print(binance.fetch_order('10432418', symbol='BNB/ETH'))
 
-    # order = quick_buy(kucoin, 'KCS/ETH', 0.1, execute=True)
+    order = quick_buy(binance, 'VEN/ETH', 0.53, execute=True)
     # print(order)
     # print(wait_for_fill('KCS/ETH', kucoin, order['id']))
     # orders = kucoin.fetch_trades('KCS/ETH')

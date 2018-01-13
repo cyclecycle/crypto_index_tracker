@@ -1,6 +1,7 @@
 from private import CLIENTS
 from prices.snapshots import compare_order_books, get_single_price, compare_actual_market_prices
 from trade.util import quick_buy, wait_for_fill
+import pickle
 
 if __name__ == '__main__':
     GDAX = CLIENTS['GDAX']
@@ -19,4 +20,10 @@ if __name__ == '__main__':
     # # print(order)
     # # print(wait_for_fill('LTC/ETH', kucoin, order['id']))
 
-    print(compare_actual_market_prices('NEO', 'ETH', 1000, (binance, kucoin)))
+    # print(compare_actual_market_prices('NEO', 'ETH', 1000, (binance, kucoin)))
+
+    ob = binance.fetch_order_book('NEO/ETH')
+
+    print(ob)
+    ob = pickle.load(open('test.p', 'ab'))
+    print(ob)

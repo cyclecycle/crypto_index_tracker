@@ -1,9 +1,12 @@
 from prices.snapshots import compare_two_exchanges, compare_order_books, compare_actual_market_prices
+from prices.util import get_order_books
 from private import CLIENTS
+import ccxt
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import pickle
 
 class Tracker:
     """Short term price tracker"""
@@ -123,7 +126,6 @@ class CompareActualMarketPricesTracker(Tracker):
                 df = df.append(compare_actual_market_prices(*args), ignore_index=True)
             except:
                 print('error')
-                raise
                 continue
             if self.csv_path is not None:
                 df.to_csv(self.csv_path)
@@ -145,8 +147,38 @@ class CompareActualMarketPricesTracker(Tracker):
         plt.show()
 
 
+class DepthTracker(Tracker):
+
+    def __init__(self, num_snaps=60, interval=60, log_filename=None):
+        super().__init__(num_snaps=num_snaps, interval=interval, log_filename=log_filename)
+        self.pickle_path = self.csv_path[:-3] + 'p'
+        self.obs = []
+
+    def track(self, *args):
+        """ args for get_order_books() function """
+        # for now just one pair per tracker
+
+        for i in range(self.num_snaps):
+            try:
+                ob = get_order_books(*args)[args[0] + '/' + args[1]]
+            except:
+                print('error')
+                time.sleep(self.interval)
+                continue
+
+            self.obs.append(ob)
+            if self.pickle_path is not None:
+                pickle.dump(self.obs, open(self.pickle_path, 'wb'))
+            time.sleep(self.interval)
+
+    def load_log(self, file=None):
+        if file is None:
+            file = self.pickle_path
+        self.obs = pickle.load(open(file, 'rb'))
+
+
 if __name__ == '__main__':
-    tracker = CompareActualMarketPricesTracker(num_snaps=100, interval=30, log_filename='neoeth.csv')
-    # tracker.track('NEO', 'ETH', 1000, (CLIENTS['Binance'], CLIENTS['Kucoin']))
-    tracker.load_csv()
-    tracker.plot()
+    tracker = DepthTracker(num_snaps=240, interval=60, log_filename='bntyethdepth')
+    tracker.track('BNTY', 'ETH', CLIENTS['Kucoin'])
+    # tracker.load_csv()
+    # tracker.plot()

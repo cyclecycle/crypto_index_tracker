@@ -18,11 +18,13 @@ KRAKEN_GDAX_EUR_BASES = ['BTC', 'ETH', 'LTC']
 
 if __name__ == '__main__':
     clients = (CLIENTS['Binance'], CLIENTS['Kucoin'])
-    print(compare_order_books(SAFE_KUCOIN_BINANCE_ETH_BASES, 'ETH', (CLIENTS['Binance'], CLIENTS['Kucoin'], ccxt.gatecoin())))
+    print(ccxt.cryptopia().fetch_markets())
+    print(compare_order_books(SAFE_KUCOIN_BINANCE_ETH_BASES, 'ETH', (CLIENTS['Binance'], CLIENTS['Kucoin'], ccxt.cryptopia())))
 
+    # print(compare_order_books(['ETH', 'LTC'], 'BTC', (CLIENTS['Binance'], CLIENTS['Kucoin'], CLIENTS['GDAX'])))
+    # print(compare_actual_market_prices('NEO', 'ETH', 1000, clients))
 
     # print(compare_order_books('NEO', 'ETH', clients))
-
     # tracker = CompareOrderBooksTracker(log_filename='modeth.csv', num_snaps=120, interval=10)
     # tracker.track('MOD', 'ETH', clients)
     # tracker.plot()

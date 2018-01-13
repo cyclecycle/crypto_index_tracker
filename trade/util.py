@@ -12,13 +12,13 @@ FIAT = ['GBP', 'USD', 'EUR']
 
 CWD = os.path.dirname(os.path.realpath(__file__))
 ROOT = Path(CWD).parents[0]
-with open(os.path.join(ROOT, 'trade/api_keys.yaml')) as f:
-    API_KEYS = yaml.load(f)
+# with open(os.path.join(ROOT, 'trade/api_keys.yaml')) as f:
+#     API_KEYS = yaml.load(f)
 
-CLIENTS = {
-    'BINANCE': ccxt.binance(API_KEYS['BINANCE']),
-    # 'GDAX': ccxt.gdax(API_KEYS['GDAX'])
-}
+# CLIENTS = {
+#     'BINANCE': ccxt.binance(API_KEYS['BINANCE']),
+#     # 'GDAX': ccxt.gdax(API_KEYS['GDAX'])
+# }
 
 def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None):
     """
@@ -259,5 +259,6 @@ def calc_market_price(base, quote, amount, client):
 
 
 if __name__ == '__main__':
-    cmc = Market()
-    print(cmc.ticker('Litecoin'))
+    pass
+    # cmc = Market()
+    # print(cmc.ticker('Litecoin'))

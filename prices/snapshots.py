@@ -10,7 +10,7 @@ from ccxt.base.errors import ExchangeError
 """ Price snapshot functions using cryptocompy """
 
 EXCHANGE_WHITELIST = {'GDAX', 'Kraken', 'Bitstamp', 'BitTrex', 'Bitfinex', 'Exmo', 'Binance'}  # incomplete
-
+pd.set_option('expand_frame_repr', False)
 
 def get_single_price(base, quote, exchange, ret_float=False):
     """
