@@ -15,10 +15,10 @@ ROOT = Path(CWD).parents[0]
 with open(os.path.join(ROOT, 'trade/api_keys.yaml')) as f:  # This file is in .gitignore so is individual
     API_KEYS = yaml.load(f)
 
-CLIENTS = {
-    'BINANCE': ccxt.binance(API_KEYS['BINANCE']),
-    # 'GDAX': ccxt.gdax(API_KEYS['GDAX'])
-}
+# CLIENTS = {
+#     'BINANCE': ccxt.binance(API_KEYS['BINANCE']),
+#     # 'GDAX': ccxt.gdax(API_KEYS['GDAX'])
+# }
 
 def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None):
     """
@@ -41,7 +41,11 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
     totals = {}
     coins = set()
     for ex in clients:
-        totals[ex] = clients[ex].fetch_balance()['total']
+        totals_raw = clients[ex].fetch_balance()['total']
+        totals[ex] = {}
+        for curr in totals_raw:
+            if totals_raw[curr] > 0.01:
+                totals[ex][curr] = totals_raw[curr]
         for curr in totals[ex]:
             if curr not in FIAT:
                 coins.add(curr)
@@ -92,7 +96,6 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
             row_totals[col] = sum(df[col].values)
             if col == 'EUR':
                 row_gbp_totals[col] = row_totals[col] * eur2gbp
-                print(eur2gbp)
             elif col == 'GBP' or col == 'Total (GBP)':
                 row_gbp_totals[col] = row_totals[col]
             elif col == 'BTC':
@@ -114,7 +117,7 @@ def get_total_balance(clients, gbp_only=False, wallets=None, funds_invested=None
     perc_row = {}
     for col in df_cols:
         if col == 'Exchange':
-            perc_row[col] = 'Total %'
+            perc_row[col] = '%'
         else:
             perc_row[col] = 100 * df[col].values[-1] / df['Total (GBP)'].values[-1]
     perc_row['%'] = 100
@@ -199,14 +202,11 @@ def quick_buy(client, pair, funds, execute=False, amount_to_lots=False):
     tick = client.fetch_ticker(pair)
     bid = tick['bid']
     ask = tick['ask']
-
-    mybid = tick['bid'] * 1.01
+    mybid = int(tick['bid'] * 1.01 * 1e6) / 1e6
     amount = funds / mybid
 
     if amount_to_lots:
         amount = client.amount_to_lots(pair, amount)
-    else:
-        amount = round(amount, 3)
     print(amount)
 
     if execute:
@@ -223,23 +223,21 @@ def quick_limit_order(client, pair, direction, fcurr_amount, execute=False, amou
     bid = tick['bid']
     ask = tick['ask']
 
-    if direction == 'buy':  # fcurr_amount is in quote currency
-        mybid = tick['bid'] * 0.999
-        amount = fcurr_amount / mybid
-    elif direction == 'sell':  # fcurr_amount is in base currency
+    if direction == 'sell':
         mybid = tick['ask'] * 1.001
-        amount = fcurr_amount
+        amount = fcurr_amount  # fcurr_amount is the base currency amount
+    elif direction == 'buy':
+        mybid = tick['bid'] * 0.999
+        amount = fcurr_amount / mybid  # fcurr_amount is in quote currency so calculate amount in base currency
 
     if amount_to_lots:
         amount = client.amount_to_lots(pair, amount)
-    # else:
-    #     amount = round(amount, 3)
 
     if execute:
         order = client.create_order(pair, 'limit', direction, amount, price=mybid)
         return order
     else:
-        return {'bid': mybid, 'amount': amount}
+        return {bid': mybid, 'amount': amount}
 
 
 def wait_for_fill(pair, client, id, timeout=60):
@@ -269,9 +267,27 @@ def get_spread(base, quote, clients):
     return spread
 
 
+def calc_market_price(base, quote, amount, client):
+    """ Calculates price of market order based on current depth """
+    order_book = client.fetch_order_book(base + '/' + quote)
+    for side in ['asks', 'bids']:
+        fill, cost = 0, 0
+        depth = order_book[side]
+        while fill < amount:
+            for order in depth:
+                delta = min(order[1], (amount - fill))
+                cost += order[0] * delta
+                fill += delta
+        assert fill == amount, 'fill: {}, amount: {}'.format(fill, amount)
+        if side == 'asks':
+            buy_price = cost / fill
+        else:
+            sell_price = cost / fill
+
+    return buy_price, sell_price
+
+
 if __name__ == '__main__':
+    pass
     # cmc = Market()
     # print(cmc.ticker('Litecoin'))
-
-    client = CLIENTS['BINANCE']
-    quick_buy(client, 'ETH/BTC', 10, amount_to_lots=True)

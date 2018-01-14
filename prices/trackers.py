@@ -1,8 +1,12 @@
-from prices.snapshots import compare_two_exchanges
+from prices.snapshots import compare_two_exchanges, compare_order_books, compare_actual_market_prices
+from prices.util import get_order_books
+from private import CLIENTS
+import ccxt
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import pickle
 
 class Tracker:
     """Short term price tracker"""
@@ -19,6 +23,8 @@ class Tracker:
         if log_filename is not None:
             ext = '.csv' if not log_filename.endswith('.csv') else ''
             self.csv_path = '{}/data/{}{}'.format(os.path.dirname(os.path.abspath(__file__)), log_filename, ext)
+        else:
+            self.csv_path = None
 
     def load_csv(self, path=None):
         if path is None:
@@ -70,13 +76,15 @@ class CompareTwoExchangesTracker(Tracker):
                 df.to_csv(self.csv_path)
         self.df = df
 
-class CompareOrderBooks(Tracker):
+
+class CompareOrderBooksTracker(Tracker):
 
     def __init__(self, num_snaps=60, interval=60, log_filename=None):
         super().__init__(num_snaps=num_snaps, interval=interval, log_filename=log_filename)
 
     def track(self, *args):
-        """Input args for compare_two_exchanges() function"""
+        """Input args for compare_order_books() function"""
+        # not good yet
         base = [args[0]] if isinstance(args[0], str) else args[0]
         quote = [args[1]] if isinstance(args[1], str) else args[1]
         cols = []
@@ -87,10 +95,13 @@ class CompareOrderBooks(Tracker):
 
         for i in range(self.num_snaps):
             print('Snapshot: {}'.format(i))
-            df2 = compare_two_exchanges(*args)
+            try:
+                df2 = compare_order_books(*args)
+            except:
+                continue
             row = {}
             for p in range(len(base)):
-                name = df2.iloc[p]['Pair']
+                name = df2.iloc[p]['pair']
                 val = df2.iloc[p]['% diff']
                 row[name] = val
             df = df.append(row, ignore_index=True)
@@ -100,9 +111,74 @@ class CompareOrderBooks(Tracker):
         self.df = df
 
 
+class CompareActualMarketPricesTracker(Tracker):
+
+    def __init__(self, num_snaps=60, interval=60, log_filename=None):
+        super().__init__(num_snaps=num_snaps, interval=interval, log_filename=log_filename)
+
+    def track(self, *args):
+        df = compare_actual_market_prices(*args)
+        base, quote = args[0], args[1]
+        for i in range(self.num_snaps):
+            print('Snapshot: {}'.format(i))
+            time.sleep(self.interval)
+            try:
+                df = df.append(compare_actual_market_prices(*args), ignore_index=True)
+            except:
+                print('error')
+                continue
+            if self.csv_path is not None:
+                df.to_csv(self.csv_path)
+        self.df = df
+
+    def plot(self):
+        linestyles = ['-', '--', '-.', ':']
+        i = 0
+        for col in self.df:
+            if 'named' in col or 'pair' in col:
+                pass
+            else:
+                if col.endswith('buy'):
+                    plt.plot(self.df[col], linestyle=linestyles[i], color='g', label=col)
+                elif col.endswith('sell'):
+                    plt.plot(self.df[col], linestyle=linestyles[i], color='r', label=col)
+                    i += 1
+        plt.legend()
+        plt.show()
+
+
+class DepthTracker(Tracker):
+
+    def __init__(self, num_snaps=60, interval=60, log_filename=None):
+        super().__init__(num_snaps=num_snaps, interval=interval, log_filename=log_filename)
+        self.pickle_path = self.csv_path[:-3] + 'p'
+        self.obs = []
+
+    def track(self, *args):
+        """ args for get_order_books() function """
+        # for now just one pair per tracker
+
+        for i in range(self.num_snaps):
+            try:
+                ob = get_order_books(*args)[args[0] + '/' + args[1]]
+            except:
+                print('error')
+                time.sleep(self.interval)
+                continue
+
+            self.obs.append(ob)
+            if self.pickle_path is not None:
+                pickle.dump(self.obs, open(self.pickle_path, 'wb'))
+            time.sleep(self.interval)
+
+    def load_log(self, file=None):
+        if file is None:
+            file = self.pickle_path
+        self.obs = pickle.load(open(file, 'rb'))
 
 
 if __name__ == '__main__':
-    tracker = CompareTwoExchangesTracker(log_filename='data/tracker.csv')
-    tracker.load_csv('data/krakenarb.csv')
-    tracker.plot()
+    tracker = DepthTracker(num_snaps=240, interval=60, log_filename='bntyethdepth')
+    tracker.track('BNTY', 'ETH', CLIENTS['Kucoin'])
+    # tracker.load_csv()
+    # tracker.plot()

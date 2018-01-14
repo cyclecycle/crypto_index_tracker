@@ -1,8 +1,9 @@
 from prices.snapshots import *
 from prices.historical import historical_compare
-from prices.trackers import CompareTwoExchangesTracker
+from prices.trackers import CompareTwoExchangesTracker, CompareOrderBooksTracker
 from prices.util import filter_unlisted_pairs
 import pandas as pd
+import ccxt
 import matplotlib.pyplot as plt
 from private import CLIENTS
 
@@ -16,7 +17,20 @@ KRAKEN_BITSTAMP_EUR_BASES = ['XRP', 'BCH', 'LTC', 'ETH', 'BTC']
 KRAKEN_GDAX_EUR_BASES = ['BTC', 'ETH', 'LTC']
 
 if __name__ == '__main__':
-    print(compare_order_books(SAFE_KUCOIN_BINANCE_ETH_BASES, 'ETH', (CLIENTS['Binance'], CLIENTS['Kucoin'])))
+    clients = (CLIENTS['Binance'], CLIENTS['Kucoin'])
+    print(ccxt.cryptopia().fetch_markets())
+    print(compare_order_books(SAFE_KUCOIN_BINANCE_ETH_BASES, 'ETH', (CLIENTS['Binance'], CLIENTS['Kucoin'], ccxt.cryptopia())))
+
+    # print(compare_order_books(['ETH', 'LTC'], 'BTC', (CLIENTS['Binance'], CLIENTS['Kucoin'], CLIENTS['GDAX'])))
+    # print(compare_actual_market_prices('NEO', 'ETH', 1000, clients))
+
+    # print(compare_order_books('NEO', 'ETH', clients))
+    # tracker = CompareOrderBooksTracker(log_filename='modeth.csv', num_snaps=120, interval=10)
+    # tracker.track('MOD', 'ETH', clients)
+    # tracker.plot()
+
+    # tracker.load_csv()
+    # tracker.plot()
 
     # track = CompareTwoExchangesTracker(log_filename='kucoinarb.csv', num_snaps=180, interval=10)
     #

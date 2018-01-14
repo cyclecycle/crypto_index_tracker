@@ -1,5 +1,5 @@
 from private import CLIENTS, ADDRESSES
-from prices.snapshots import compare_two_exchanges_ccxt, compare_two_exchanges
+from prices.snapshots import compare_two_exchanges
 import ccxt
 import time
 
