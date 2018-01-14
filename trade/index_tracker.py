@@ -2,13 +2,14 @@ import os
 import sys
 from pathlib import Path
 import pickle
+import json
 from pprint import pformat
-# from collections import OrderedDict
+from collections import OrderedDict
+import numpy as np
 from coinmarketcap import Market
 from cryptocompy import price
 import ccxt
 import yaml
-import numpy as np
 from bots import CoreBot
 import util
 import helpers
@@ -16,6 +17,7 @@ import optimise
 
 root = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 sys.path.append(str(root))
+
 with open(os.path.join(root, 'trade/api_keys.yaml')) as f:
     API_KEYS = yaml.load(f)
 
@@ -68,6 +70,11 @@ class IndexTracker(CoreBot):
         trades_to_make = self.trades_to_make(positions, positions_eur, desired_val_eur, current_spread, desired_spread, pair_data_list)
         # self.log('trades to make', trades_to_make)
         self.log(str(len(trades_to_make)) + ' trades')
+
+        # with open('trades_to_make.json', 'w') as f:
+        #     json.dump(trades_to_make, f)
+
+        raise
         results = self.execute_trades(trades_to_make)
 
     def trades_to_make(self, positions, positions_eur, desired_val_eur, current_spread, desired_spread, pair_data_list,
@@ -135,18 +142,20 @@ class IndexTracker(CoreBot):
 
                     in_amount = spend_amount
                     for r, tcurr_amount in zip(route, trade_outcomes):
+                        in_amount
                         trade = {
-                            'type': r['direction'],
                             'symbol': r['symbol'],
+                            'direction': r['direction'],
                             'fcurr': r['tsym'],
                             'tcurr': r['fsym'],
                             'fcurr_amount': in_amount,
                             'tcurr_amount': tcurr_amount
                         }
+                        print(trade)
                         trades_to_make.append(trade)
                         in_amount = tcurr_amount  # Last out_amount is the next in_amount
 
-                    ''' Update values after the trade '''
+                    ''' Update values after each trade '''
                     excess[fcurr] -= spend_amount
                     excess_eur[fcurr] -= spend_eur
                     val_to_buy -= spend_eur
@@ -154,33 +163,7 @@ class IndexTracker(CoreBot):
 
     def execute_trades(self, trades_to_make):
         results = []
-        for trade in trades_to_make:
-            fcurr = trade['fcurr']
-            tcurr = trade['tcurr']
-            symbol = trade['symbol']
-            in_amount = trade['fcurr_amount']
-            out_amount = trade['tcurr_amount']
-            msg = 'Attempting to trade {fcurr_amount} {fcurr} for {tcurr_amount} {tcurr}' .format(**trade)
-            if not self.query_yes_or_no(msg):
-                quit()
-            if trade['type'] == 'buy':
-                lots = self.client.amount_to_lots(symbol, out_amount)
-            #     try:
-            #         result = self.client.create_market_buy_order(symbol, lots)
-            #         print(result)
-            #         results.append(result)
-            #     except Exception as e:  # Unacceptable lot size
-            #         raise e
-            elif trade['type'] == 'sell':
-                lots = self.client.amount_to_lots(symbol, in_amount)
-            #     try:
-            #         result = self.client.create_market_sell_order(symbol, lots)
-            #         print(result)
-            #         results.append(result)
-            #     except Exception as e:  # Unacceptable lot size
-            #         raise e
-        # print(results)
-        # return results
+        return results
 
     def apply_metric_weights(self, coin_data_list, metric_weights):
         symbols = [dd['symbol'] for dd in coin_data_list]

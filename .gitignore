@@ -4,3 +4,4 @@ backtesting/*.db
 backtesting/*.csv
 *.sqlite
 api_keys.yaml
+*.log

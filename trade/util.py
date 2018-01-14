@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import pickle
 import ccxt
-from forex_python.converter import CurrencyRates
+# from forex_python.converter import CurrencyRates
 import pandas as pd
 import time
 from cryptocompy import price
@@ -12,7 +12,7 @@ FIAT = ['GBP', 'USD', 'EUR']
 
 CWD = os.path.dirname(os.path.realpath(__file__))
 ROOT = Path(CWD).parents[0]
-with open(os.path.join(ROOT, 'trade/api_keys.yaml')) as f:
+with open(os.path.join(ROOT, 'trade/api_keys.yaml')) as f:  # This file is in .gitignore so is individual
     API_KEYS = yaml.load(f)
 
 CLIENTS = {
@@ -165,10 +165,12 @@ def get_pair_data_list(client, use_checkpoint=False):
 
 
 def symbols_in_pair_data_list(pair_data_list):
+    ''' List of unique symbols in pair_data_list '''
     return list(set([sublist for _list in [[d['tsym'], d['fsym']] for d in pair_data_list] for sublist in _list]))
 
 
 def get_inv_pairs(pair_data_list):
+    ''' For every trading pair in pair_data_list add the inverse pair, price, and direction '''
     pairs_inv = []
     for pair in pair_data_list:
         pair_inv = pair.copy()
@@ -184,7 +186,7 @@ def get_inv_pairs(pair_data_list):
     return pair_data_list
 
 
-def quick_buy(client, pair, funds, execute=False):
+def quick_buy(client, pair, funds, execute=False, amount_to_lots=False):
     """
     Make a limit buy just above the current bid price. Prints info.
     :param client: ccxt client
@@ -193,16 +195,48 @@ def quick_buy(client, pair, funds, execute=False):
     :param execute: safety param, set True to execute trade.
     :return: order info
     """
+
     tick = client.fetch_ticker(pair)
     bid = tick['bid']
     ask = tick['ask']
+
     mybid = tick['bid'] * 1.01
     amount = funds / mybid
-    amount = int(amount * 1e3)/1e3
-    # amount = client.amount_to_lots(pair, amount)  # for binance
+
+    if amount_to_lots:
+        amount = client.amount_to_lots(pair, amount)
+    else:
+        amount = round(amount, 3)
     print(amount)
+
     if execute:
         order = client.create_order(pair, 'limit', 'buy', amount, price=mybid)
+        return order
+    else:
+        return {'bid': mybid, 'amount': amount}
+
+
+def quick_limit_order(client, pair, direction, fcurr_amount, execute=False, amount_to_lots=False):
+    assert direction in {'buy', 'sell'}
+
+    tick = client.fetch_ticker(pair)
+    bid = tick['bid']
+    ask = tick['ask']
+
+    if direction == 'buy':  # fcurr_amount is in quote currency
+        mybid = tick['bid'] * 0.999
+        amount = fcurr_amount / mybid
+    elif direction == 'sell':  # fcurr_amount is in base currency
+        mybid = tick['ask'] * 1.001
+        amount = fcurr_amount
+
+    if amount_to_lots:
+        amount = client.amount_to_lots(pair, amount)
+    # else:
+    #     amount = round(amount, 3)
+
+    if execute:
+        order = client.create_order(pair, 'limit', direction, amount, price=mybid)
         return order
     else:
         return {'bid': mybid, 'amount': amount}
@@ -236,5 +270,8 @@ def get_spread(base, quote, clients):
 
 
 if __name__ == '__main__':
-    cmc = Market()
-    print(cmc.ticker('Litecoin'))
+    # cmc = Market()
+    # print(cmc.ticker('Litecoin'))
+
+    client = CLIENTS['BINANCE']
+    quick_buy(client, 'ETH/BTC', 10, amount_to_lots=True)
