@@ -97,7 +97,9 @@ def animate_depth(obs):
 
 
 if __name__ == "__main__":
-    tracker = DepthTracker(num_snaps=2, interval=1, log_filename='neoeth')
-    # tracker.track('NEO', 'ETH', ccxt.binance())
+    tracker = DepthTracker(num_snaps=600, interval=30, log_filename='venbtc')
+    # tracker.track('VEN', 'BTC', ccxt.binance())
     tracker.load_log()
-    plotdepth(tracker.obs[0])
+    obs = tracker.obs
+    animate_depth(obs)
+    # plotdepth(tracker.obs[0])
