@@ -2,7 +2,7 @@ vars:
   $metric_weights:
     market_cap_eur: 1
   $coin_weight_coeffs:  # Alter the final weightings
-    BTC: 0.5
+    BTC: 0.4
     BCH: 0
     BTG: 0
     LTC: 0.2
@@ -15,7 +15,7 @@ vars:
     REQ: 25
     XLM: 5
     EOS: 3
-    NEO: 2
+    NEO: 4
     ADA: 0
     TRX: 0
     ETC: 0

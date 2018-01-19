@@ -237,7 +237,7 @@ def quick_limit_order(client, pair, direction, fcurr_amount, execute=False, amou
         order = client.create_order(pair, 'limit', direction, amount, price=mybid)
         return order
     else:
-        return {bid': mybid, 'amount': amount}
+        return {'bid': mybid, 'amount': amount}
 
 
 def wait_for_fill(pair, client, id, timeout=60):

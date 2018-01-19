@@ -71,8 +71,8 @@ class IndexTracker(CoreBot):
         # self.log('trades to make', trades_to_make)
         self.log(str(len(trades_to_make)) + ' trades')
 
-        # with open('trades_to_make.json', 'w') as f:
-        #     json.dump(trades_to_make, f)
+        with open('trades_to_make.json', 'w') as f:
+            json.dump(trades_to_make, f)
 
         raise
         results = self.execute_trades(trades_to_make)
@@ -204,7 +204,7 @@ class IndexTracker(CoreBot):
 
     def get_coin_data(self):
         coinmarketcap = Market()
-        coin_data = coinmarketcap.ticker(limit=200, convert='EUR')
+        coin_data = coinmarketcap.ticker(limit=300, convert='EUR')
         coin2eur = {d['symbol']: d['price_eur'] for d in coin_data}
         coin2eur = helpers.recursive_replace(coin2eur, coin_thesaurus)
         self.coin2eur = self.sort_dict_desc(coin2eur)
