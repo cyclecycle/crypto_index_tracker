@@ -1,3 +1,4 @@
+from pprint import pprint
 import os
 import sys
 from pathlib import Path
@@ -10,10 +11,9 @@ from coinmarketcap import Market
 from cryptocompy import price
 import ccxt
 import yaml
-from bots import CoreBot
+from core_bot import CoreBot
 import util
 import helpers
-import optimise
 
 root = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 sys.path.append(str(root))
@@ -41,41 +41,42 @@ class IndexTracker(CoreBot):
         self.log('Getting coin market cap data...')
         coin_data_list = self.memory[coin_data_list][-1]
         coin_data_list = helpers.recursive_replace(coin_data_list, coin_thesaurus)  # Standardise symbol names
-        coin_data_list = [el for el in coin_data_list if el['symbol'] in exchange_syms]
+        coin_data_list = [el for el in coin_data_list.values() if el['symbol'] in exchange_syms]
 
-        self.log('calculating desired spread...')
-        sym2weights = self.apply_metric_weights(coin_data_list, metric_weights)
-        sym2weights = self.apply_coin_coeffs(sym2weights, coin_weight_coeffs)
-        sym2weights = OrderedDict(sorted(sym2weights.items(), key=lambda x: x[1], reverse=True))
-        keep_syms = list(sym2weights)[:n_coins]
-        sym2weights = {sym: sym2weights[sym] for sym in keep_syms}
-        sym2weights = self.scale_weights_to_sum_1(sym2weights)
-        desired_spread = {sym: round(sym2weights[sym], 3) for sym in sym2weights}
+        # self.log('calculating desired spread...')
+        # sym2weights = self.apply_metric_weights(coin_data_list, metric_weights)
+        # sym2weights = self.apply_coin_coeffs(sym2weights, coin_weight_coeffs)
+        # sym2weights = OrderedDict(sorted(sym2weights.items(), key=lambda x: x[1], reverse=True))
+        # keep_syms = list(sym2weights)[:n_coins]
+        # sym2weights = {sym: sym2weights[sym] for sym in keep_syms}
+        # sym2weights = self.scale_weights_to_sum_1(sym2weights)
+        # desired_spread = {sym: round(sym2weights[sym], 3) for sym in sym2weights}
 
         self.log('getting current positions...')
         positions = self.get_current_positions()
-        positions.update({sym: 0 for sym in list(set(desired_spread.keys()) - set(positions.keys()))})  # Add null vals for coins not owned
+        pprint(positions)
+        # positions.update({sym: 0 for sym in list(set(desired_spread.keys()) - set(positions.keys()))})  # Add null vals for coins not owned
         positions_eur = self.positions_to_values(positions)
         current_spread = self.positions_to_spread(positions_eur)
         current_sum_eur = sum(positions_eur.values())
-        desired_val_eur = self.spread_to_values(desired_spread, current_sum_eur)
+        # desired_val_eur = self.spread_to_values(desired_spread, current_sum_eur)
 
         self.log('current positions (coin amounts)', positions)
         self.log('current positions (in EUR)', positions_eur)
         self.log('current total value (in EUR):', current_sum_eur)
         self.log('current spread:', current_spread)
-        self.log('desired positions (in EUR):', desired_val_eur)
-        self.log('desired spread:', self.sort_dict_desc(desired_spread))
+        # self.log('desired positions (in EUR):', desired_val_eur)
+        # self.log('desired spread:', self.sort_dict_desc(desired_spread))
 
-        trades_to_make = self.trades_to_make(positions, positions_eur, desired_val_eur, current_spread, desired_spread, pair_data_list)
+        # trades_to_make = self.trades_to_make(positions, positions_eur, desired_val_eur, current_spread, desired_spread, pair_data_list)
         # self.log('trades to make', trades_to_make)
-        self.log(str(len(trades_to_make)) + ' trades')
+        # self.log(str(len(trades_to_make)) + ' trades')
 
-        with open('trades_to_make.json', 'w') as f:
-            json.dump(trades_to_make, f)
+        # with open(os.path.join(root, 'trade/trades_to_make.json'), 'w') as f:
+        #     json.dump(trades_to_make, f, indent=2)
 
-        raise
-        results = self.execute_trades(trades_to_make)
+        # raise
+        # results = self.execute_trades(trades_to_make)
 
     def trades_to_make(self, positions, positions_eur, desired_val_eur, current_spread, desired_spread, pair_data_list,
         fee_coeff=1-0.03, amounts_to_lots=False, min_trade_eur=1):
@@ -132,13 +133,13 @@ class IndexTracker(CoreBot):
                     else:
                         spend_eur = funds_eur  # Put all in
 
-                    route = optimise.shortest_path(optimise.find_trade_paths(fcurr, tcurr, pair_data_list))
+                    route = util.shortest_path(util.find_trade_paths(fcurr, tcurr, pair_data_list))
                     if not route:
                         self.log('No route from ' + fcurr + ' to ' + tcurr)
                         continue
 
                     spend_amount = self.eur_to_coin(spend_eur, fcurr)
-                    trade_outcomes = optimise.trade_path_outcomes(route, in_amount=spend_amount, fee_perc=0.005)
+                    trade_outcomes = util.trade_path_outcomes(route, in_amount=spend_amount, fee_perc=0.005)
 
                     in_amount = spend_amount
                     for r, tcurr_amount in zip(route, trade_outcomes):
@@ -172,6 +173,8 @@ class IndexTracker(CoreBot):
         sym2vals = {sym: {} for sym in symbols}
         for dd in coin_data_list:
             symbol = dd['symbol']
+            pprint(dd)
+            raise
             for key in keys_of_interest:
                 val = float(dd[key])
                 sym2vals[symbol][key] = val
@@ -205,7 +208,8 @@ class IndexTracker(CoreBot):
     def get_coin_data(self):
         coinmarketcap = Market()
         coin_data = coinmarketcap.ticker(limit=300, convert='EUR')
-        coin2eur = {d['symbol']: d['price_eur'] for d in coin_data}
+        coin_data = coin_data['data']
+        coin2eur = {d['symbol']: d['quotes']['EUR']['price'] for d in coin_data.values()}
         coin2eur = helpers.recursive_replace(coin2eur, coin_thesaurus)
         self.coin2eur = self.sort_dict_desc(coin2eur)
         return coin_data

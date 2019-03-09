@@ -1,1 +1,162 @@
-[{"symbol": "ETH/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "ETH", "fcurr_amount": 0.0021965329812093314, "tcurr_amount": 0.02398751334953996}, {"symbol": "ICX/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "ICX", "fcurr_amount": 0.0018383007144380636, "tcurr_amount": 2.5083779633377303}, {"symbol": "EOS/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "EOS", "fcurr_amount": 0.0015396196987073683, "tcurr_amount": 1.6278854473341815}, {"symbol": "QTUM/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "QTUM", "fcurr_amount": 0.0014297894445629382, "tcurr_amount": 0.41283821745215427}, {"symbol": "LSK/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "LSK", "fcurr_amount": 0.0012255338096253759, "tcurr_amount": 0.619616941350228}, {"symbol": "OMG/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "OMG", "fcurr_amount": 0.001021278174687813, "tcurr_amount": 0.6431466986166924}, {"symbol": "XRP/BTC", "direction": "sell", "fcurr": "XRP", "tcurr": "BTC", "fcurr_amount": 5.771027178916553, "tcurr_amount": 0.0008113689096790044}, {"symbol": "ZEC/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "ZEC", "fcurr_amount": 0.0008113689096790044, "tcurr_amount": 0.017743122310562843}, {"symbol": "PPT/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "PPT", "fcurr_amount": 0.0008170225397502505, "tcurr_amount": 0.224649025078481}, {"symbol": "DASH/BTC", "direction": "sell", "fcurr": "DASH", "tcurr": "BTC", "fcurr_amount": 0.01039221656864287, "tcurr_amount": 0.0007484690530841223}, {"symbol": "LTC/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "LTC", "fcurr_amount": 0.0007484690530841223, "tcurr_amount": 0.04451444756836233}, {"symbol": "XRP/BTC", "direction": "sell", "fcurr": "XRP", "tcurr": "BTC", "fcurr_amount": 3.8373776948755154, "tcurr_amount": 0.0005395103609444808}, {"symbol": "NEO/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "NEO", "fcurr_amount": 0.0005395103609444808, "tcurr_amount": 0.042445861401103686}, {"symbol": "BCH/BTC", "direction": "sell", "fcurr": "BCH", "tcurr": "BTC", "fcurr_amount": 0.0012806857377315151, "tcurr_amount": 0.00019878804021068578}, {"symbol": "NEO/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "NEO", "fcurr_amount": 0.00019878804021068578, "tcurr_amount": 0.015639606231488287}, {"symbol": "XMR/BTC", "direction": "sell", "fcurr": "XMR", "tcurr": "BTC", "fcurr_amount": 0.015041294120811162, "tcurr_amount": 0.0004271770397998614}, {"symbol": "BTC/USDT", "direction": "sell", "fcurr": "BTC", "tcurr": "USDT", "fcurr_amount": 0.0004271770397998614, "tcurr_amount": 4.873717397584602}, {"symbol": "REQ/BTC", "direction": "sell", "fcurr": "REQ", "tcurr": "BTC", "fcurr_amount": 4.1468944472322375, "tcurr_amount": 0.00021517924269604538}, {"symbol": "BTC/USDT", "direction": "sell", "fcurr": "BTC", "tcurr": "USDT", "fcurr_amount": 0.00021517924269604538, "tcurr_amount": 2.455007458308474}, {"symbol": "BCH/BTC", "direction": "sell", "fcurr": "BCH", "tcurr": "BTC", "fcurr_amount": 0.0016933142622684847, "tcurr_amount": 0.00026283623978931423}, {"symbol": "STRAT/BTC", "direction": "buy", "fcurr": "BTC", "tcurr": "STRAT", "fcurr_amount": 0.00026283623978931423, "tcurr_amount": 0.19872496853371405}]
+[
+  {
+    "symbol": "NANO/BTC",
+    "direction": "buy",
+    "fcurr": "BTC",
+    "tcurr": "NANO",
+    "fcurr_amount": 0.00468308882136062,
+    "tcurr_amount": 2.912295860783636
+  },
+  {
+    "symbol": "XMR/BTC",
+    "direction": "sell",
+    "fcurr": "XMR",
+    "tcurr": "BTC",
+    "fcurr_amount": 0.03086253579386924,
+    "tcurr_amount": 0.0008352022522790474
+  },
+  {
+    "symbol": "NANO/BTC",
+    "direction": "buy",
+    "fcurr": "BTC",
+    "tcurr": "NANO",
+    "fcurr_amount": 0.0008352022522790474,
+    "tcurr_amount": 0.5193914006360326
+  },
+  {
+    "symbol": "LSK/BTC",
+    "direction": "sell",
+    "fcurr": "LSK",
+    "tcurr": "BTC",
+    "fcurr_amount": 0.23881254740995994,
+    "tcurr_amount": 0.0004906584090010922
+  },
+  {
+    "symbol": "NANO/BTC",
+    "direction": "buy",
+    "fcurr": "BTC",
+    "tcurr": "NANO",
+    "fcurr_amount": 0.0004906584090010922,
+    "tcurr_amount": 0.3051281980975542
+  },
+  {
+    "symbol": "ZEC/BTC",
+    "direction": "sell",
+    "fcurr": "ZEC",
+    "tcurr": "BTC",
+    "fcurr_amount": 0.01249911200696648,
+    "tcurr_amount": 0.0004938207292583149
+  },
+  {
+    "symbol": "NANO/BTC",
+    "direction": "buy",
+    "fcurr": "BTC",
+    "tcurr": "NANO",
+    "fcurr_amount": 0.0004938207292583149,
+    "tcurr_amount": 0.3070947660075146
+  },
+  {
+    "symbol": "NANO/ETH",
+    "direction": "buy",
+    "fcurr": "ETH",
+    "tcurr": "NANO",
+    "fcurr_amount": 0.004668209089884634,
+    "tcurr_amount": 0.2452282373916483
+  },
+  {
+    "symbol": "QTUM/ETH",
+    "direction": "sell",
+    "fcurr": "QTUM",
+    "tcurr": "ETH",
+    "fcurr_amount": 0.1368821777785627,
+    "tcurr_amount": 0.00411344495560181
+  },
+  {
+    "symbol": "NANO/ETH",
+    "direction": "buy",
+    "fcurr": "ETH",
+    "tcurr": "NANO",
+    "fcurr_amount": 0.00411344495560181,
+    "tcurr_amount": 0.21608562012690996
+  },
+  {
+    "symbol": "BCH/BTC",
+    "direction": "sell",
+    "fcurr": "BCH",
+    "tcurr": "BTC",
+    "fcurr_amount": 0.0016585741035707732,
+    "tcurr_amount": 0.00020017911356931913
+  },
+  {
+    "symbol": "NANO/BTC",
+    "direction": "buy",
+    "fcurr": "BTC",
+    "tcurr": "NANO",
+    "fcurr_amount": 0.00020017911356931913,
+    "tcurr_amount": 0.12448638625092033
+  },
+  {
+    "symbol": "LTC/BTC",
+    "direction": "sell",
+    "fcurr": "LTC",
+    "tcurr": "BTC",
+    "fcurr_amount": 0.015984,
+    "tcurr_amount": 0.00032568375024
+  },
+  {
+    "symbol": "STEEM/BTC",
+    "direction": "buy",
+    "fcurr": "BTC",
+    "tcurr": "STEEM",
+    "fcurr_amount": 0.00032568375024,
+    "tcurr_amount": 0.9754826354268513
+  },
+  {
+    "symbol": "VEN/BNB",
+    "direction": "sell",
+    "fcurr": "VEN",
+    "tcurr": "BNB",
+    "fcurr_amount": 0.5637292442205109,
+    "tcurr_amount": 0.34647447638423456
+  },
+  {
+    "symbol": "STEEM/BNB",
+    "direction": "buy",
+    "fcurr": "BNB",
+    "tcurr": "STEEM",
+    "fcurr_amount": 0.34647447638423456,
+    "tcurr_amount": 0.9484486189124941
+  },
+  {
+    "symbol": "XRP/BTC",
+    "direction": "sell",
+    "fcurr": "XRP",
+    "tcurr": "BTC",
+    "fcurr_amount": 1.7271811981096867,
+    "tcurr_amount": 0.00015717815241721636
+  },
+  {
+    "symbol": "BNB/BTC",
+    "direction": "buy",
+    "fcurr": "BTC",
+    "tcurr": "BNB",
+    "fcurr_amount": 0.00015717815241721636,
+    "tcurr_amount": 0.16865336099981698
+  },
+  {
+    "symbol": "BCH/BNB",
+    "direction": "sell",
+    "fcurr": "BCH",
+    "tcurr": "BNB",
+    "fcurr_amount": 0.001315425896429227,
+    "tcurr_amount": 0.1708571180372719
+  },
+  {
+    "symbol": "IOTA/BNB",
+    "direction": "sell",
+    "fcurr": "IOTA",
+    "tcurr": "BNB",
+    "fcurr_amount": 0.9273650633568086,
+    "tcurr_amount": 0.1687854493022813
+  }
+]

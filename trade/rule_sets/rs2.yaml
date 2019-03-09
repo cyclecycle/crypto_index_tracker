@@ -1,12 +1,12 @@
 vars:
-  $sma_1_len: 10
-  $sma_2_len: 45
-  $sma_1_gradient_len: 10
-  $sma_2_gradient_len: 45
-  $sma_1_buy_gradient: 4
-  $sma_2_buy_gradient: 4
-  $sma_1_sell_gradient: -4
-  $sma_2_sell_gradient: -4
+  $sma_1_len: 0
+  $sma_2_len: 0
+  $sma_1_gradient_len: 0
+  $sma_2_gradient_len: 0
+  $sma_1_buy_gradient: 0
+  $sma_2_buy_gradient: 0
+  $sma_1_sell_gradient: 0
+  $sma_2_sell_gradient: 0
 
 observables:
   sma_1:

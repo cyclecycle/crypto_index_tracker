@@ -36,7 +36,10 @@ def get_dataset(pair, exchange):
         columns = [c[0] for c in cur.description]
     df = pd.DataFrame(records, columns=columns)
     df.drop(['Unnamed: 0'], axis=1, inplace=True)
+    df.drop_duplicates(inplace=True)
+    df['ts'] = pd.DatetimeIndex(df['ts'])
     df.sort_values(['ts'], inplace=True)
+    df.reset_index(inplace=True, drop=True)
     return df
 
 

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import sys
+import shutil
 import re
 import imaplib
 import email
@@ -20,10 +21,8 @@ if not os.path.exists(outdir):
     os.mkdir(outdir)
 
 if os.path.exists(zip_path):
-    os.remove(zip_path)
-
-if not os.path.exists(zip_path):
-    os.mkdir(zip_path)
+    shutil.rmtree(zip_path)
+os.mkdir(zip_path)
 
 if os.path.exists(db_path):
     os.remove(db_path)

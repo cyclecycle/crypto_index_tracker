@@ -22,6 +22,8 @@ with open('../trades_to_make.json') as f:
     trades_to_make = json.load(f)
 
 trades_completed = []
+
+print(trades_to_make)
 # %%
 
 client = CLIENTS['BINANCE']
@@ -39,6 +41,7 @@ for i, t in enumerate(trades_to_make):
             print(order)
             try:
                 util.wait_for_fill(t['symbol'], client, order['id'], timeout=120)
+                trades_completed.append(i)
             except TimeoutError as e:
                 raise e  # Adjust order
         except Exception as e:
@@ -47,7 +50,11 @@ for i, t in enumerate(trades_to_make):
 
 # %%
 
-# ids = [order['id'] for order in client.fetch_open_orders('XRP/ETH')]
+print(trades_completed)
+
+# %%
+
+# ids = [order['id'] for order in client.fetch_open_orders('VEN/ETH')]
 # for _id in ids:
-    # r = client.cancel_order(_id, 'XRP/ETH')
-    # print(r)
+#     r = client.cancel_order(_id, 'VEN/ETH')
+#     print(r)
